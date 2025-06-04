@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>le BonMot - Grammatiktrainer</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="style.css">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+
+    <div id="splashScreen" class="splash-screen">
+        <svg class="splash-logo" viewBox="0 0 300 300" version="1.1" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <clipPath id="flag-clip">
+              <rect x="108" y="80.5" width="84" height="54" rx="5" ry="5" />
+            </clipPath>
+          </defs>
+          <rect width="300" height="300" rx="45" ry="45" fill="#4A90E2" />
+          
+          <g id="speech-bubble-with-frame">
+            <rect x="88" y="60.5" width="124" height="94" rx="30" ry="30"
+                  fill="white" stroke="white" stroke-width="8" />
+            <polygon points="118,154.5 142,154.5 130,171.5"
+                     fill="white" stroke="white" stroke-width="8" stroke-linejoin="round" />
+          </g>
+          
+          <g id="flag-elements" clip-path="url(#flag-clip)">
+            <rect x="108" y="80.5" width="28" height="54" fill="#0055A4" />
+            <rect x="136" y="80.5" width="28" height="54" fill="#FFFFFF" />
+            <rect x="164" y="80.5" width="28" height="54" fill="#EF4135" />
+          </g>
+          <rect x="108" y="80.5" width="84" height="54" rx="5" ry="5" fill="none" stroke="#cccccc" stroke-width="1"/>
+          
+          <text
+             x="150"
+             y="230"
+             font-family="Georgia, serif"
+             font-size="45px"
+             font-weight="bold"
+             fill="white"
+             text-anchor="middle">
+            le BonMot
+          </text>
+        </svg>
+    </div>
+
+    <div id="main-content" class="initially-hidden">
+        <div id="app-container">
+            <header class="app-header">
+                <svg class="header-logo-svg" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M85 22.0001C85 18.1341 81.866 15.0001 78 15.0001H22C18.134 15.0001 15 18.1341 15 22.0001V62.0001C15 65.8661 18.134 69.0001 22 69.0001H35V81.0001L50.5 69.0001H78C81.866 69.0001 85 65.8661 85 62.0001V22.0001Z" fill="white"/>
+                    <rect x="25" y="25.0001" width="16.6667" height="34" fill="#0055A4"/>
+                    <rect x="41.6667" y="25.0001" width="16.6666" height="34" fill="white"/>
+                    <rect x="58.3333" y="25.0001" width="16.6667" height="34" fill="#EF4135"/>
+                </svg>
+                <div>
+                    <h1>le BonMot</h1>
+                    <p class="subtitle">Grammatiktrainer</p>
+                </div>
+            </header>
+
+            <main>
+                <div id="dashboard-view" class="view active">
+                    <section class="topic-selection">
+                        <h2>Grammatik-Themen</h2>
+                        <div id="topic-list"></div>
+                    </section>
+                    <section class="progress-overview card">
+                        <h2>Dein Fortschritt</h2>
+                        <div class="progress-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">Niveau</span>
+                                <span id="level-display" class="stat-value">1</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Streak</span>
+                                <span id="streak-display" class="stat-value">🔥 0</span>
+                            </div>
+                        </div>
+                        <div class="xp-bar">
+                            <div id="xp-bar-fill" class="xp-bar-fill"></div>
+                        </div>
+                        <span id="xp-display" class="xp-label">0 / 100 XP</span>
+                        <button id="badges-btn" class="btn btn-secondary">Meine Auszeichnungen</button>
+                    </section>
+                </div>
+
+                <div id="topic-view" class="view">
+                    <button class="btn-back topic-back-btn" data-target="dashboard-view"><i class="fas fa-arrow-left"></i> Zurück zur Übersicht</button>
+                    <h2 id="topic-title">Thema</h2>
+                    <div id="topic-content-area">
+                        <div class="tabs">
+                            <button class="tab-link active" data-tab="theory">Theorie</button>
+                            <button class="tab-link" data-tab="exercises">Übungen</button>
+                        </div>
+                        <div id="theory" class="tab-content active card">
+                            <p id="topic-theory"></p>
+                        </div>
+                        <div id="exercises" class="tab-content card">
+                            <ul id="exercise-list"></ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="verb-config-view" class="view card">
+                </div>
+
+                <div id="verb-selection-view" class="view card">
+                </div>
+
+                <div id="verb-mode-selection-view" class="view card">
+                    <button class="btn-back mode-selection-back-btn" data-target="verb-selection-view"><i class="fas fa-arrow-left"></i> Zurück zur Verbauswahl</button>
+                    <h2>Trainingsmodus auswählen</h2>
+                    <div id="mode-buttons-container" class="mode-buttons-container">
+                    </div>
+                </div>
+
+                <div id="verb-training-standard-view" class="view card">
+                    <button class="btn-back training-standard-back-btn" data-target="verb-mode-selection-view"><i class="fas fa-arrow-left"></i> Zurück zur Modusauswahl</button>
+                    <div class="verb-training-header">
+                        <h3 id="verb-training-standard-title">
+                            Verb: <span id="verb-infinitive-display"></span>
+                            <i id="verb-speaker-icon" class="fas fa-volume-up verb-speaker-icon"></i>
+                             - 
+                            <span id="tense-display"></span>
+                        </h3>
+                    </div>
+                    <div id="standard-conjugation-area">
+                    </div>
+                    <div id="verb-training-feedback" class="feedback-message"></div>
+                    <div class="verb-training-actions">
+                        <button id="check-verb-conjugation-btn" class="btn btn-primary">Prüfen</button>
+                        <button id="next-verb-standard-btn" class="btn btn-secondary" style="display:none;">Nächste Aufgabe</button>
+                    </div>
+                </div>
+
+                <div id="verb-training-shuffle-view" class="view card">
+                    <button class="btn-back shuffle-training-back-btn" data-target="verb-mode-selection-view"><i class="fas fa-arrow-left"></i> Zurück zur Modusauswahl</button>
+                    <div class="verb-training-header">
+                        <h3 id="verb-training-shuffle-title"> 
+                            Verb: <span id="shuffle-verb-infinitive-display"></span>
+                            <i id="shuffle-verb-speaker-icon" class="fas fa-volume-up verb-speaker-icon"></i>
+                             - 
+                            <span id="shuffle-tense-display"></span>
+                        </h3>
+                    </div>
+                    <div id="shuffle-conjugation-area" class="card">
+                    </div>
+                    <div class="special-chars-bar-container"></div> <div id="shuffle-verb-training-feedback" class="feedback-message"></div>
+                    <div class="verb-training-actions">
+                        <button id="check-shuffle-form-btn" class="btn btn-primary">Prüfen</button>
+                        <button id="next-shuffle-form-btn" class="btn btn-secondary" style="display:none;">Nächste Form</button>
+                    </div>
+                </div>
+
+                <div id="verb-training-dnd-view" class="view card">
+                    <button class="btn-back dnd-training-back-btn" data-target="verb-mode-selection-view"><i class="fas fa-arrow-left"></i> Zurück zur Modusauswahl</button>
+                    <div class="verb-training-header">
+                        <h3 id="dnd-verb-title"> 
+                            Verb: <span id="dnd-verb-infinitive-display"></span>
+                            <i id="dnd-verb-speaker-icon" class="fas fa-volume-up verb-speaker-icon"></i>
+                             - 
+                            <span id="dnd-tense-display"></span>
+                        </h3>
+                    </div>
+                    <div class="dnd-instructions">Ordne die Verbformen den richtigen Pronomen zu.</div>
+                    <div class="dnd-container">
+                        <div id="dnd-pronoun-targets" class="dnd-column">
+                        </div>
+                        <div id="dnd-verb-forms-pool" class="dnd-column">
+                        </div>
+                    </div>
+                    <div id="dnd-feedback" class="feedback-message"></div>
+                    <div class="verb-training-actions">
+                        <button id="check-dnd-btn" class="btn btn-primary">Prüfen</button>
+                        <button id="next-dnd-challenge-btn" class="btn btn-secondary" style="display:none;">Nächste Aufgabe</button>
+                    </div>
+                </div>
+
+                <div id="verb-training-fillgap-view" class="view card">
+                    <button class="btn-back fillgap-training-back-btn" data-target="verb-mode-selection-view"><i class="fas fa-arrow-left"></i> Zurück zur Modusauswahl</button>
+                    <div class="verb-training-header">
+                        <h3 id="fillgap-verb-title">
+                            Verb: <span id="fillgap-verb-infinitive-display"></span>
+                             - 
+                            <span id="fillgap-tense-display"></span>
+                        </h3>
+                    </div>
+                    <div id="fillgap-sentence-container" class="card">
+                        </div>
+                    <div class="special-chars-bar-container"></div> <div id="fillgap-feedback" class="feedback-message"></div>
+                    <div class="verb-training-actions">
+                        <button id="check-fillgap-btn" class="btn btn-primary">Prüfen</button>
+                        <button id="next-fillgap-challenge-btn" class="btn btn-secondary" style="display:none;">Nächste Aufgabe</button>
+                    </div>
+                </div>
+                
+                <div id="round-summary-view" class="view card">
+                </div>
+
+                <div id="exercise-view" class="view">
+                     <button class="btn-back exercise-back-btn"><i class="fas fa-arrow-left"></i> Zurück zum Thema</button>
+                     <div id="exercise-card" class="card">
+                         <h3 id="exercise-instruction">Anweisung...</h3>
+                         <div id="exercise-content"></div>
+                         <div id="exercise-feedback"></div>
+                         <button id="check-answers-btn" class="btn">Prüfen</button>
+                     </div>
+                </div>
+
+                <div id="badges-view" class="view">
+                    <button class="btn-back badges-back-btn" data-target="dashboard-view"><i class="fas fa-arrow-left"></i> Zurück zur Übersicht</button>
+                    <h2>Meine Auszeichnungen</h2>
+                    <div id="badges-grid"></div>
+                </div>
+            </main>
+        </div>
+    </div>
+    
+    <script src="verb-data.js" defer></script>
+    <script src="script.js" defer></script>
+    <script src="verb_trainer.js" defer></script>
+</body>
+</html>
