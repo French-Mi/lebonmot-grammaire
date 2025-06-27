@@ -7,7 +7,8 @@ import ProgressChart from '@/components/dashboard/ProgressChart.vue';
 import AchievementIcon from '@/components/dashboard/AchievementIcon.vue';
 
 const progressStore = useProgressStore();
-const timeFrame = ref('week');
+// HIER IST DIE KORREKTUR für den Fehler aus dem Netlify-Log
+const timeFrame = ref<'week' | 'month' | 'year'>('week');
 </script>
 
 <template>
@@ -64,7 +65,7 @@ const timeFrame = ref('week');
     padding: 2rem 1rem;
 }
 .page-title { font-size: 2.5rem; margin-bottom: 2rem; color: var(--header-blue); text-align: center; }
-.card { background-color: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px A6px rgba(0,0,0,0.05); margin-bottom: 2rem; }
+.card { background-color: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 2rem; }
 
 .progress-card h2 { margin-top: 0; text-align: center; }
 .xp-bar-container { width: 100%; background-color: #e9ecef; border-radius: 8px; height: 16px; overflow: hidden; margin-top: 1rem; }

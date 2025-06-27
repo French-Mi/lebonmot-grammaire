@@ -1,5 +1,4 @@
 // src/types/verb-types.ts
-import type { Verb } from '@/types/verb-types';
 
 export const tensesStructure = {
     "Indicatif": {
