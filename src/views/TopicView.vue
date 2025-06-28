@@ -1,55 +1,77 @@
 <script setup lang="ts">
 import { useRoute, RouterLink } from 'vue-router';
-import { computed } from 'vue';
-
-// Daten-Importe
-import { topics } from '../data/topics';
+import { computed, ref } from 'vue';
 import { pronounData } from '../data/pronouns';
-
-// Komponenten-Import
+import type { PronounCategory } from '../data/pronouns';
 import LevelCard from '../components/layout/LevelCard.vue';
 
 const route = useRoute();
-// KORREKTUR: Der Parameter in der URL heißt 'topicId', nicht 'id'.
 const topicId = computed(() => route.params.topicId as string);
 
-const currentTopic = computed(() => {
-  return topics.find(topic => topic.id === topicId.value);
+// NEU: Zustand für die ausgewählte Kategorie
+const selectedCategoryId = ref<string | null>(null);
+
+const currentTopicData = computed(() => {
+  if (topicId.value === 'pronouns') {
+    return pronounData;
+  }
+  return null;
 });
 
-// Wir laden die Kategorien für das jeweilige Thema.
-// Im Moment nur für Pronomen, später erweiterbar.
-const categories = computed(() => {
-  if (topicId.value === 'pronouns') {
-    return pronounData.categories;
-  }
-  return [];
+const categories = computed((): PronounCategory[] => {
+  return currentTopicData.value ? currentTopicData.value.categories : [];
 });
+
+const currentTopicTitle = computed(() => {
+  return currentTopicData.value ? currentTopicData.value.title : "Thema";
+});
+
+// NEU: Funktion zum Auswählen einer Kategorie
+const selectCategory = (categoryId: string) => {
+    // Ermöglicht das An- und Abwählen der Kategorie
+    selectedCategoryId.value = selectedCategoryId.value === categoryId ? null : categoryId;
+}
+
+// NEU: Computed Property, die die Daten der ausgewählten Kategorie zurückgibt
+const selectedCategoryData = computed((): PronounCategory | undefined => {
+    if (!selectedCategoryId.value) return undefined;
+    return categories.value.find(c => c.id === selectedCategoryId.value);
+})
 </script>
 
 <template>
   <div class="view-container">
     <RouterLink to="/" class="back-link">&larr; Zurück zur Übersicht</RouterLink>
 
-    <div v-if="currentTopic">
-      <h1 class="topic-title">{{ currentTopic.title }}</h1>
+    <div v-if="currentTopicData">
+      <h1 class="topic-title">{{ currentTopicTitle }}</h1>
 
-      <div v-for="category in categories" :key="category.id" class="category-block">
-        <h2 class="category-title">{{ category.title }}</h2>
+      <div class="category-selector">
+          <button
+            v-for="category in categories"
+            :key="category.id"
+            @click="selectCategory(category.id)"
+            :class="['btn-category', { active: selectedCategoryId === category.id }]"
+          >
+            {{ category.title.replace(/A\)|B\)/, '').trim() }} </button>
+      </div>
+
+      <div v-if="selectedCategoryData" class="levels-container-wrapper">
         <div class="levels-container card">
-          <div v-if="category.levels.length > 0">
-            <LevelCard
-              v-for="level in category.levels"
-              :key="level.level"
-              :level-data="level"
-              :topic-id="currentTopic.id"
-            />
-          </div>
-          <div v-else>
-            <p>Die Level für diese Kategorie werden bald hinzugefügt.</p>
-          </div>
+            <div v-if="selectedCategoryData.levels.length > 0">
+                <LevelCard
+                v-for="level in selectedCategoryData.levels"
+                :key="level.level"
+                :level-data="level"
+                :topic-id="currentTopicData.id"
+                />
+            </div>
+            <div v-else>
+                <p>Die Level für diese Kategorie werden bald hinzugefügt.</p>
+            </div>
         </div>
       </div>
+
     </div>
 
     <div v-else>
@@ -59,6 +81,10 @@ const categories = computed(() => {
 </template>
 
 <style scoped>
+.view-container {
+    max-width: 900px;
+    margin: 0 auto;
+}
 .back-link {
   display: inline-block;
   margin-bottom: 1.5rem;
@@ -74,15 +100,38 @@ const categories = computed(() => {
   color: var(--header-blue);
 }
 
-/* NEUE STILE FÜR DIE KATEGORIEN */
-.category-block {
-  margin-bottom: 3rem;
+/* NEUE STILE für die Kategorie-Buttons */
+.category-selector {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
 }
-.category-title {
-  font-size: 1.8rem;
-  margin-bottom: 1rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 2px solid var(--light-blue);
+.btn-category {
+    flex-grow: 1;
+    padding: 1.25rem;
+    font-size: 1.3rem;
+    font-weight: 500;
+    border: 2px solid var(--border-color);
+    background-color: var(--card-background);
+    color: var(--dark-text);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+.btn-category:hover {
+    border-color: var(--primary-blue);
+    color: var(--primary-blue);
+}
+.btn-category.active {
+    background-color: var(--primary-blue);
+    color: white;
+    border-color: var(--primary-blue);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.levels-container-wrapper {
+    margin-top: 1rem;
 }
 .levels-container {
   padding: 1rem 2rem;

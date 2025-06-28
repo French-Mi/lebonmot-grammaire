@@ -13,6 +13,8 @@ import QuizFillInTheBlank from '@/components/quiz-types/QuizFillInTheBlank.vue';
 import QuizSentenceOrder from '@/components/quiz-types/QuizSentenceOrder.vue';
 import QuizMatchPairs from '@/components/quiz-types/QuizMatchPairs.vue';
 import QuizIdentifyPart from '@/components/quiz-types/QuizIdentifyPart.vue';
+// NEU: Neue Komponente importiert
+import QuizClickTheWord from '@/components/quiz-types/QuizClickTheWord.vue';
 import LevelSummary from '@/components/ui/LevelSummary.vue';
 
 type FeedbackPayload = {
@@ -57,7 +59,6 @@ const setupExercises = (mode: 'mistakes' | number) => {
 
   if (mode === 'mistakes') {
       const mistakes = grammarStore.getMistakesForLevel(topicId.value, levelId.value);
-      // KORREKTUR: Typsichere Erstellung der Fehlerrunde
       const groupedMistakes = mistakes.reduce<Record<string, Exercise>>((acc, mistake) => {
         const key = `${mistake.exercise.type}-${mistake.exercise.instructions}`;
         if (!acc[key]) {
@@ -204,6 +205,8 @@ const backToSelection = () => router.push(`/topic/${topicId.value}/level/${level
             <QuizSentenceOrder ref="quizComponentRef" v-if="currentExercise.type === 'sentenceOrder'" :exercise-data="currentExercise" @completed="handleExerciseCompleted" @feedback="handleFeedback" />
             <QuizMatchPairs ref="quizComponentRef" v-if="currentExercise.type === 'matchPairs'" :exercise-data="currentExercise" @completed="handleExerciseCompleted" @feedback="handleFeedback"/>
             <QuizIdentifyPart ref="quizComponentRef" v-if="currentExercise.type === 'identifyPart'" :exercise-data="currentExercise" @completed="handleExerciseCompleted" @feedback="handleFeedback" />
+            <QuizClickTheWord ref="quizComponentRef" v-if="currentExercise.type === 'clickTheWord'" :exercise-data="currentExercise" @completed="handleExerciseCompleted" @feedback="handleFeedback" />
+
 
             <div v-if="showFeedback && feedbackDetails" class="feedback-container-global">
                 <div v-if="feedbackDetails.isCorrect" class="feedback-box correct">

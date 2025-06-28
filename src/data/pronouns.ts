@@ -19,7 +19,10 @@ export interface MatchPairsExercise extends BaseExercise { type: 'matchPairs'; s
 export interface IdentifyPartQuestion { sentence: string; prompt: string; answer: string; explanation?: string; }
 export interface IdentifyPartExercise extends BaseExercise { type: 'identifyPart', questions: IdentifyPartQuestion[] }
 
-export type Exercise = | FillInTheBlankExercise | SentenceOrderExercise | MatchPairsExercise | IdentifyPartExercise;
+export interface ClickTheWordQuestion { sentence: string; prompt: string; answer: string[]; explanation?: string; translation_de?: string; }
+export interface ClickTheWordExercise extends BaseExercise { type: 'clickTheWord', questions: ClickTheWordQuestion[] }
+
+export type Exercise = | FillInTheBlankExercise | SentenceOrderExercise | MatchPairsExercise | IdentifyPartExercise | ClickTheWordExercise;
 
 // --- Haupt-Datenstruktur ---
 export interface TopicLevel {
@@ -69,7 +72,7 @@ export const pronounData: PronounTopicData = {
               instructions: 'Bilde korrekte Sätze, indem du die Satzteile in die richtige Reihenfolge ziehst.',
               questions: [
                 {
-                  parts: ["est très intéressant.", "que", "tu lis", "Le livre"],
+                  parts: ["est très interessant.", "que", "tu lis", "Le livre"],
                   correctOrder: [3, 1, 2, 0],
                   explanation: "Regel: 'que' ist das Objekt. Danach folgt ein neues Subjekt ('tu') und dann das Verb ('lis').",
                   translation_de: "Das Buch, das du liest, ist sehr interessant."
@@ -168,25 +171,28 @@ export const pronounData: PronounTopicData = {
           uniqueId: 'obj-1',
           title: 'Objekte erkennen',
           description: 'Identifiziere direkte und indirekte Objekte in einem Satz.',
-          hasTheory: false,
+          hasTheory: true,
           exercises: [{
-            type: 'identifyPart',
-            shortTitle: 'Objekte erkennen',
-            instructions: 'Lies den Satz und gib den gefragten Satzteil ein.',
+            type: 'clickTheWord',
+            shortTitle: 'Objekte auswählen',
+            instructions: 'Klicke die Wörter an, die zum gesuchten Objekt gehören.',
             questions: [
-              { sentence: "Le garçon mange une pomme.", prompt: "Was ist das direkte Objekt?", answer: "une pomme" },
-              { sentence: "Je donne le livre à mon ami.", prompt: "Was ist das indirekte Objekt?", answer: "à mon ami" },
+              { sentence: "Le garçon mange une pomme.", prompt: "Wähle das direkte Objekt aus.", answer: ["une", "pomme"], translation_de: "Der Junge isst einen Apfel." },
+              { sentence: "Je donne le livre à mon frère.", prompt: "Wähle das indirekte Objekt aus.", answer: ["à", "mon", "frère"], translation_de: "Ich gebe meinem Bruder das Buch." },
+              { sentence: "Elle regarde la télévision.", prompt: "Wähle das direkte Objekt aus.", answer: ["la", "télévision"], translation_de: "Sie schaut Fernsehen." },
+              { sentence: "Nous parlons à nos parents.", prompt: "Wähle das indirekte Objekt aus.", answer: ["à", "nos", "parents"], translation_de: "Wir sprechen mit unseren Eltern." },
+              { sentence: "Le professeur explique la leçon.", prompt: "Wähle das direkte Objekt aus.", answer: ["la", "leçon"], translation_de: "Der Lehrer erklärt die Lektion." },
+              { sentence: "Tu écris une lettre à ta grand-mère.", prompt: "Wähle das direkte Objekt aus.", answer: ["une", "lettre"], translation_de: "Du schreibst deiner Großmutter einen Brief." },
+              { sentence: "Tu écris une lettre à ta grand-mère.", prompt: "Wähle das indirekte Objekt aus.", answer: ["à", "ta", "grand-mère"], translation_de: "Du schreibst deiner Großmutter einen Brief." },
+              { sentence: "La mère lit une histoire à son enfant.", prompt: "Wähle das direkte Objekt aus.", answer: ["une", "histoire"], translation_de: "Die Mutter liest ihrem Kind eine Geschichte vor." },
+              { sentence: "Le professeur donne les livres aux élèves.", prompt: "Wähle das indirekte Objekt aus.", answer: ["aux", "élèves"], translation_de: "Der Lehrer gibt den Schülern die Bücher." },
+              { sentence: "Le professeur donne les livres aux élèves.", prompt: "Wähle das direkte Objekt aus.", answer: ["les", "livres"], translation_de: "Der Lehrer gibt den Schülern die Bücher." },
             ]
           }]
         },
         { level: 2, uniqueId: 'obj-2', title: 'Direktes Objekt ersetzen', description: 'Übe das Ersetzen und die korrekte Satzstellung.', hasTheory: false, exercises: [] },
         { level: 3, uniqueId: 'obj-3', title: 'Indirektes Objekt ersetzen', description: 'Übe das Ersetzen und die korrekte Satzstellung.', hasTheory: false, exercises: [] },
         { level: 4, uniqueId: 'obj-4', title: 'Gemischte Objekte', description: 'Wende direkte und indirekte Objektpronomen an.', hasTheory: false, exercises: [] },
-        { level: 5, uniqueId: 'obj-5', title: 'Das Pronomen "en"', description: 'Lerne, "en" korrekt zu verwenden.', hasTheory: false, exercises: [] },
-        { level: 6, uniqueId: 'obj-6', title: 'Das Pronomen "y"', description: 'Lerne, "y" korrekt zu verwenden.', hasTheory: false, exercises: [] },
-        { level: 7, uniqueId: 'obj-7', title: '"en" und "y" gemischt', description: 'Unterscheide zwischen "en" und "y".', hasTheory: false, exercises: [] },
-        { level: 8, uniqueId: 'obj-8', title: 'Alle Pronomen gemischt', description: 'Ein umfassender Test aller Pronomen.', hasTheory: false, exercises: [] },
-        { level: 9, uniqueId: 'obj-9', title: 'Imperativ mit Pronomen', description: 'Bilde Befehlsätze mit Objektpronomen.', hasTheory: false, exercises: [] }
       ]
     }
   ]
