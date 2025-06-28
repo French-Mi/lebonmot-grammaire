@@ -17,7 +17,7 @@ export const topics: GrammarTopic[] = [
   {
     id: 'pronouns',
     title: 'Pronomen',
-    description: 'Meistere Relativ- und Objektpronomen in 9 Levels.',
+    description: 'Meistere Relativ- und Objektpronomen in über 10 Levels.',
     isAvailable: true,
   },
   {

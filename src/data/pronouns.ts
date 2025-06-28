@@ -20,14 +20,21 @@ export interface MultipleChoiceExercise { type: 'multipleChoice', instructions: 
 export type Exercise = | FillInTheBlankExercise | SentenceOrderExercise | MatchPairsExercise | IdentifyPartExercise | TranslateExercise | MultipleChoiceExercise;
 
 // --- Haupt-Datenstruktur ---
-export interface TopicLevel { level: number; uniqueId: string; title: string; description: string; exercises: Exercise[]; }
+export interface TopicLevel {
+    level: number;
+    uniqueId: string;
+    title: string;
+    description: string;
+    hasTheory: boolean;
+    exercises: Exercise[];
+}
 export interface PronounCategory { id:string; title: string; levels: TopicLevel[]; }
 export interface PronounTopicData { id: string; title: string; categories: PronounCategory[]; }
 
 // --- Die vollständigen, korrigierten und gesäuberten Daten ---
 export const pronounData: PronounTopicData = {
   id: 'pronouns',
-  title: 'Les Pronoms',
+  title: 'Pronomen',
   categories: [
     {
       id: 'relativpronomen',
@@ -38,6 +45,7 @@ export const pronounData: PronounTopicData = {
           uniqueId: 'rel-1',
           title: 'Qui / que / qu’',
           description: 'Lerne die Grundlagen der wichtigsten Relativpronomen.',
+          hasTheory: true,
           exercises: [
             {
               type: 'fillInTheBlank',
@@ -64,7 +72,7 @@ export const pronounData: PronounTopicData = {
                 {
                   parts: ["que", "j'invite", "sont mes amis.", "Les gens"],
                   correctOrder: [3, 0, 1, 2],
-                  explanation: "Regel: 'que' ist das Objekt. Danach folgt ein neues Subjekt ('j\'') und dann das Verb ('invite').",
+                  explanation: "Regel: 'que' ist das Objekt. Danach folgt ein neues Subjekt ('j\\'') und dann das Verb ('invite').",
                   translation_de: "Die Leute, die ich einlade, sind meine Freunde."
                 },
                 {
@@ -93,7 +101,14 @@ export const pronounData: PronounTopicData = {
             }
           ]
         },
-        { level: 2, uniqueId: 'rel-2', title: 'Qui / que / qu\' / où', description: 'Erweitere dein Wissen um das Relativpronomen für Orte.', exercises: [] }
+        {
+          level: 2,
+          uniqueId: 'rel-2',
+          title: 'Qui / que / qu\' / où',
+          description: 'Erweitere dein Wissen um das Relativpronomen für Orte.',
+          hasTheory: true,
+          exercises: []
+        }
       ]
     },
     {
@@ -105,27 +120,24 @@ export const pronounData: PronounTopicData = {
           uniqueId: 'obj-1',
           title: 'Objekte erkennen',
           description: 'Identifiziere direkte und indirekte Objekte in einem Satz.',
+          hasTheory: false,
           exercises: [{
             type: 'identifyPart',
             instructions: 'Lies den Satz und gib den gefragten Satzteil ein.',
             questions: [
-              { sentence: "Le garçon mange une pomme.", prompt: "Was ist das direkte Objekt?", answer: "une pomme", explanation: "Das direkte Objekt antwortet auf die Frage 'Wen oder was?'. Wen oder was isst der Junge? -> une pomme" },
-              { sentence: "Je donne le livre à mon ami.", prompt: "Was ist das indirekte Objekt?", answer: "à mon ami", explanation: "Das indirekte Objekt antwortet auf die Frage 'Wem?'. Wem gebe ich das Buch? -> à mon ami" },
-              { sentence: "Elle regarde la télévision.", prompt: "Was ist das direkte Objekt?", answer: "la télévision", explanation: "Wen oder was schaut sie? -> la télévision" },
-              { sentence: "Nous parlons à nos parents.", prompt: "Was ist das indirekte Objekt?", answer: "à nos parents", explanation: "Wem sprechen wir? -> à nos parents" },
-              { sentence: "Le professeur explique la leçon.", prompt: "Was ist das direkte Objekt?", answer: "la leçon", explanation: "Wen oder was erklärt der Lehrer? -> la leçon" },
-              { sentence: "Tu écris une lettre à ta grand-mère.", prompt: "Was ist das indirekte Objekt?", answer: "à ta grand-mère", explanation: "Wem schreibst du einen Brief? -> à ta grand-mère" }
+              { sentence: "Le garçon mange une pomme.", prompt: "Was ist das direkte Objekt?", answer: "une pomme" },
+              { sentence: "Je donne le livre à mon ami.", prompt: "Was ist das indirekte Objekt?", answer: "à mon ami" },
             ]
           }]
         },
-        { level: 2, uniqueId: 'obj-2', title: 'Direktes Objekt ersetzen', description: 'Übe das Ersetzen und die korrekte Satzstellung.', exercises: [] },
-        { level: 3, uniqueId: 'obj-3', title: 'Indirektes Objekt ersetzen', description: 'Übe das Ersetzen und die korrekte Satzstellung.', exercises: [] },
-        { level: 4, uniqueId: 'obj-4', title: 'Gemischte Objekte', description: 'Wende direkte und indirekte Objektpronomen an.', exercises: [] },
-        { level: 5, uniqueId: 'obj-5', title: 'Das Pronomen "en"', description: 'Lerne, "en" korrekt zu verwenden.', exercises: [] },
-        { level: 6, uniqueId: 'obj-6', title: 'Das Pronomen "y"', description: 'Lerne, "y" korrekt zu verwenden.', exercises: [] },
-        { level: 7, uniqueId: 'obj-7', title: '"en" und "y" gemischt', description: 'Unterscheide zwischen "en" und "y".', exercises: [] },
-        { level: 8, uniqueId: 'obj-8', title: 'Alle Pronomen gemischt', description: 'Ein umfassender Test aller Pronomen.', exercises: [] },
-        { level: 9, uniqueId: 'obj-9', title: 'Imperativ mit Pronomen', description: 'Bilde Befehlsätze mit Objektpronomen.', exercises: [] }
+        { level: 2, uniqueId: 'obj-2', title: 'Direktes Objekt ersetzen', description: 'Übe das Ersetzen und die korrekte Satzstellung.', hasTheory: false, exercises: [] },
+        { level: 3, uniqueId: 'obj-3', title: 'Indirektes Objekt ersetzen', description: 'Übe das Ersetzen und die korrekte Satzstellung.', hasTheory: false, exercises: [] },
+        { level: 4, uniqueId: 'obj-4', title: 'Gemischte Objekte', description: 'Wende direkte und indirekte Objektpronomen an.', hasTheory: false, exercises: [] },
+        { level: 5, uniqueId: 'obj-5', title: 'Das Pronomen "en"', description: 'Lerne, "en" korrekt zu verwenden.', hasTheory: false, exercises: [] },
+        { level: 6, uniqueId: 'obj-6', title: 'Das Pronomen "y"', description: 'Lerne, "y" korrekt zu verwenden.', hasTheory: false, exercises: [] },
+        { level: 7, uniqueId: 'obj-7', title: '"en" und "y" gemischt', description: 'Unterscheide zwischen "en" und "y".', hasTheory: false, exercises: [] },
+        { level: 8, uniqueId: 'obj-8', title: 'Alle Pronomen gemischt', description: 'Ein umfassender Test aller Pronomen.', hasTheory: false, exercises: [] },
+        { level: 9, uniqueId: 'obj-9', title: 'Imperativ mit Pronomen', description: 'Bilde Befehlsätze mit Objektpronomen.', hasTheory: false, exercises: [] }
       ]
     }
   ]

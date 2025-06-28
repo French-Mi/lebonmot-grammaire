@@ -28,6 +28,12 @@ const router = createRouter({
         name: 'exercise',
         component: () => import('../views/ExerciseView.vue')
     },
+    // NEUE ROUTE FÜR THEORIE-SEITEN
+    {
+      path: '/topic/:topicId/theory/:levelId',
+      name: 'theory',
+      component: () => import('../views/TheoryView.vue')
+    },
 
     // --- Verben-Trainer (vollständige Routen wiederhergestellt) ---
     {

@@ -16,8 +16,11 @@ defineProps<{
       <p class="level-description">{{ levelData.description }}</p>
     </div>
     <div class="level-actions">
-      <RouterLink :to="`/topic/${topicId}/exercise/${levelData.uniqueId}`" class="btn">
-        Starten
+      <RouterLink :to="`/topic/${topicId}/theory/${levelData.uniqueId}`" class="btn btn-theory">
+        Theorie
+      </RouterLink>
+      <RouterLink :to="`/topic/${topicId}/exercise/${levelData.uniqueId}`" class="btn btn-exercise">
+        Übungen
       </RouterLink>
     </div>
   </div>
@@ -52,20 +55,39 @@ defineProps<{
   color: var(--muted-text);
   font-size: 0.95rem;
 }
+.level-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
 .btn {
   display: inline-block;
   padding: 0.6rem 1.5rem;
   border-radius: 5px;
-  background-color: var(--primary-blue);
-  color: white;
+  border: none;
   font-size: 1rem;
   font-weight: 500;
   cursor: pointer;
   text-align: center;
-  transition: background-color 0.2s;
+  transition: all 0.2s;
   white-space: nowrap;
 }
 .btn:hover {
-  background-color: #0b5ed7;
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+}
+.btn-exercise {
+  background-color: var(--primary-blue);
+  color: white;
+}
+.btn-exercise:hover {
+    background-color: #0b5ed7;
+}
+.btn-theory {
+  background-color: var(--success-color);
+  color: white;
+}
+.btn-theory:hover {
+  background-color: #146c43;
 }
 </style>
