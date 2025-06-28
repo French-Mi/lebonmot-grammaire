@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import draggable from 'vuedraggable';
-import type { SentenceOrderExercise, SentenceOrderQuestion } from '@/data/pronouns';
+import type { SentenceOrderExercise } from '@/data/pronouns';
+import VWord from '@/components/ui/VWord.vue';
 
 const props = defineProps<{
   exerciseData: SentenceOrderExercise
@@ -14,76 +15,59 @@ const emit = defineEmits<{
       correctAnswer: string;
       explanation?: string;
       questionIndex: number;
+      translation_de?: string;
   }): void
 }>();
 
 const currentQuestionIndex = ref(0);
 const answerChecked = ref(false);
-
-const currentQuestion = computed<SentenceOrderQuestion | undefined>(() =>
-  props.exerciseData.questions[currentQuestionIndex.value]
-);
-
 const userOrder = ref<string[]>([]);
+const currentQuestion = computed(() => props.exerciseData.questions[currentQuestionIndex.value]);
+
+const getWords = (text: string) => text.split(/(\s+)/).filter(part => part.length > 0);
 
 const initializeUserOrder = () => {
   if (currentQuestion.value) {
-    userOrder.value = [...currentQuestion.value.parts];
+    userOrder.value = [...currentQuestion.value.parts].sort(() => Math.random() - 0.5);
   }
 };
 
-// KORREKTUR: Robusterer Check mit lokaler Variable
+onMounted(initializeUserOrder);
+watch(() => props.exerciseData, initializeUserOrder, { immediate: true });
+
 const isAnswerCorrect = computed(() => {
-  const question = currentQuestion.value;
-  if (!question) return false;
-
-  const correctSentence = question.correctOrder.map(id => question.parts[id]).join(' ');
-  const userSentence = userOrder.value.join(' ');
-
+  if (!currentQuestion.value) return false;
+  const correctSentence = currentQuestion.value.correctOrder.map(id => currentQuestion.value.parts[id]).join('');
+  const userSentence = userOrder.value.join('');
   return userSentence === correctSentence;
 });
 
-// KORREKTUR: Robusterer Check mit lokaler Variable
 const getCorrectSentence = () => {
-    const question = currentQuestion.value;
-    if (!question) return '';
-    return question.correctOrder.map(id => question.parts[id]).join(' ');
+    if (!currentQuestion.value) return '';
+    return currentQuestion.value.correctOrder.map(id => currentQuestion.value.parts[id]).join('');
 }
 
 const checkAnswer = () => {
     if (answerChecked.value) return;
-    const question = currentQuestion.value;
-    if (!question) return;
-
     emit('feedback', {
       isCorrect: isAnswerCorrect.value,
-      correctAnswer: getCorrectSentence(),
-      explanation: question.explanation,
-      questionIndex: props.exerciseData.questions.findIndex(q => q === question)
+      correctAnswer: getCorrectSentence().replace(/\s+/g, ' ').trim(), // Leerzeichen für die Anzeige normalisieren
+      explanation: currentQuestion.value.explanation,
+      questionIndex: currentQuestionIndex.value,
+      translation_de: currentQuestion.value.translation_de
     });
-
     answerChecked.value = true;
 };
 
 const nextQuestion = () => {
     if (currentQuestionIndex.value < props.exerciseData.questions.length - 1) {
         currentQuestionIndex.value++;
+        answerChecked.value = false;
+        initializeUserOrder();
     } else {
         emit('completed');
     }
 };
-
-watch(currentQuestionIndex, () => {
-    answerChecked.value = false;
-    initializeUserOrder();
-});
-
-watch(() => props.exerciseData, () => {
-    currentQuestionIndex.value = 0;
-    answerChecked.value = false;
-    initializeUserOrder();
-}, { immediate: true });
-
 defineExpose({ nextQuestion });
 </script>
 
@@ -93,25 +77,19 @@ defineExpose({ nextQuestion });
     <div class="progress-bar">
       <div class="progress-bar-fill" :style="{ width: `${(currentQuestionIndex + 1) / exerciseData.questions.length * 100}%` }"></div>
     </div>
-
     <div v-if="currentQuestion" class="question-slide">
       <div class="sentence-parts-container">
-        <draggable
-          v-model="userOrder"
-          class="draggable-container"
-          item-key="part"
-          :animation="150"
-          ghost-class="ghost"
-          :disabled="answerChecked"
-        >
+        <draggable v-model="userOrder" class="draggable-container" item-key="part" :animation="150" ghost-class="ghost" :disabled="answerChecked">
           <template #item="{ element: part }">
             <div class="sentence-part" :class="{ 'correct': answerChecked && isAnswerCorrect, 'incorrect': answerChecked && !isAnswerCorrect }">
-              {{ part }}
+              <template v-for="(word, index) in getWords(part)" :key="index">
+                <VWord v-if="word.trim().length > 0" :word="word" />
+                <span v-else v-html="'&nbsp;'"></span>
+              </template>
             </div>
           </template>
         </draggable>
       </div>
-
       <div v-if="!answerChecked" class="action-bar">
         <button @click="checkAnswer" class="btn btn-primary">Prüfen</button>
       </div>
@@ -127,7 +105,7 @@ defineExpose({ nextQuestion });
 .question-slide { display: flex; flex-direction: column; align-items: center; }
 .sentence-parts-container { min-height: 80px; width: 100%; display: flex; justify-content: center; align-items: center; margin-bottom: 2rem; padding: 1rem; border: 2px dashed var(--border-color); border-radius: 8px; background-color: #f8f9fa; }
 .draggable-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
-.sentence-part { padding: 10px 15px; background-color: white; border: 1px solid #dee2e6; border-radius: 6px; cursor: grab; font-size: 1.2rem; transition: all 0.2s ease-in-out; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+.sentence-part { padding: 10px 15px; background-color: white; border: 1px solid #dee2e6; border-radius: 6px; cursor: grab; font-size: 1.2rem; transition: all 0.2s ease-in-out; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; align-items: baseline; }
 .sentence-part:active { cursor: grabbing; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
 .ghost { opacity: 0.5; background: #c8ebfb; }
 .sentence-part.correct { background-color: #d1e7dd; border-color: #0f5132; color: #0f5132; }

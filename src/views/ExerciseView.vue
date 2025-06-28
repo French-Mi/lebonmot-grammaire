@@ -7,19 +7,21 @@ import { useAppStore } from '@/stores/appStore';
 
 import { pronounData } from '@/data/pronouns';
 import type { Exercise, TopicLevel } from '@/data/pronouns';
+import { achievements as allAchievements } from '@/data/achievements';
 
 import QuizFillInTheBlank from '@/components/quiz-types/QuizFillInTheBlank.vue';
 import QuizSentenceOrder from '@/components/quiz-types/QuizSentenceOrder.vue';
 import QuizMatchPairs from '@/components/quiz-types/QuizMatchPairs.vue';
 import QuizIdentifyPart from '@/components/quiz-types/QuizIdentifyPart.vue';
 import LevelSummary from '@/components/ui/LevelSummary.vue';
-import SpeakerIcon from '@/components/ui/SpeakerIcon.vue';
 
+// KORREKTUR: Der Payload-Typ wird um die optionale Übersetzung erweitert.
 type FeedbackPayload = {
     isCorrect: boolean;
-    correctAnswer: string;
+    correctAnswer?: string;
     explanation?: string;
     questionIndex: number;
+    translation_de?: string;
 };
 
 const route = useRoute();
@@ -41,6 +43,7 @@ const continueButtonRef = ref<HTMLButtonElement | null>(null);
 const isMistakeRound = ref(false);
 const currentRoundMistakes = ref<any[]>([]);
 
+// Dies ist die stabile, funktionierende Logik aus deiner Originaldatei.
 const setupExercises = (useMistakes = false) => {
   isMistakeRound.value = useMistakes;
   levelFinished.value = false;
@@ -90,7 +93,6 @@ const currentLevelData = computed((): TopicLevel | undefined => {
 
 const currentExercise = computed(() => exerciseQueue.value[currentExerciseIndex.value]);
 const isLastExercise = computed(() => currentExerciseIndex.value >= exerciseQueue.value.length - 1);
-const mistakeCountForLevel = computed(() => currentRoundMistakes.value.length);
 
 const handleFeedback = (payload: FeedbackPayload) => {
     if (!payload.isCorrect) {
@@ -127,7 +129,6 @@ const handleExerciseCompleted = () => {
         const mistakesInRound = currentRoundMistakes.value.length;
         const isPerfect = mistakesInRound === 0;
 
-        // KORREKTUR: Übergibt jetzt auch die topicId
         progressStore.addXp(isPerfect ? 100 : 50, topicId.value);
         progressStore.logSession();
 
@@ -136,11 +137,17 @@ const handleExerciseCompleted = () => {
         const newAchievements = progressStore.unlockedAchievements.filter(id => !oldAchievements.includes(id));
 
         if(newAchievements.length > 0) {
-            appStore.showNotification({
-                title: "Neuer Erfolg!",
-                description: `Du hast "${newAchievements.join(', ')}" freigeschaltet!`,
-                icon: 'fas fa-trophy'
-            });
+            const achievementTitles = newAchievements
+                .map(id => allAchievements.find(ach => ach.id === id)?.title)
+                .filter(Boolean);
+
+            if (achievementTitles.length > 0) {
+                appStore.showNotification({
+                    title: "Neuer Erfolg!",
+                    description: `Du hast "${achievementTitles.join(', ')}" freigeschaltet!`,
+                    icon: 'fas fa-trophy'
+                });
+            }
         }
 
         grammarStore.clearMistakesForLevel(topicId.value, levelId.value);
@@ -175,7 +182,7 @@ const backToHome = () => router.push('/');
   <div class="view-container">
     <LevelSummary
         v-if="levelFinished"
-        :mistake-count="mistakeCountForLevel"
+        :mistake-count="currentRoundMistakes.length"
         @repeat-all="repeatLevel"
         @repeat-mistakes="repeatMistakes"
         @back-to-topic="backToTopic"
@@ -188,21 +195,27 @@ const backToHome = () => router.push('/');
             <QuizFillInTheBlank ref="quizComponentRef" v-if="currentExercise.type === 'fillInTheBlank'" :exercise-data="currentExercise" @completed="handleExerciseCompleted" @feedback="handleFeedback" />
             <QuizSentenceOrder ref="quizComponentRef" v-if="currentExercise.type === 'sentenceOrder'" :exercise-data="currentExercise" @completed="handleExerciseCompleted" @feedback="handleFeedback" />
             <QuizMatchPairs ref="quizComponentRef" v-if="currentExercise.type === 'matchPairs'" :exercise-data="currentExercise" @completed="handleExerciseCompleted" @feedback="handleFeedback"/>
-            <QuizIdentifyPart v-if="currentExercise.type === 'identifyPart'" :exercise-data="currentExercise" @completed="handleExerciseCompleted" />
+            <QuizIdentifyPart ref="quizComponentRef" v-if="currentExercise.type === 'identifyPart'" :exercise-data="currentExercise" @completed="handleExerciseCompleted" @feedback="handleFeedback" />
+
             <div v-if="showFeedback && feedbackDetails" class="feedback-container-global">
                 <div v-if="feedbackDetails.isCorrect" class="feedback-box correct">
-                    Richtig!
+                    <p>Richtig!</p>
+                    <p v-if="feedbackDetails.translation_de" class="translation">{{ feedbackDetails.translation_de }}</p>
                 </div>
                 <div v-else class="feedback-box incorrect">
                     <p>
                         <strong>Leider nicht ganz richtig.</strong>
                         <span v-if="feedbackDetails.correctAnswer" class="correct-answer">{{ feedbackDetails.correctAnswer }}</span>
                     </p>
+                    <p v-if="feedbackDetails.translation_de" class="translation">
+                        <strong>Übersetzung:</strong> {{ feedbackDetails.translation_de }}
+                    </p>
                     <p v-if="feedbackDetails.explanation" class="explanation">
                         {{ feedbackDetails.explanation }}
                     </p>
                 </div>
             </div>
+
             <div v-if="showFeedback" class="next-action-bar">
                 <button ref="continueButtonRef" @click="advanceToNext" class="btn btn-secondary">
                   Weiter
@@ -221,11 +234,16 @@ const backToHome = () => router.push('/');
 .back-link:hover { color: var(--dark-text); }
 .exercise-title { font-size: 2.5rem; margin-bottom: 2rem; text-align: center; color: var(--header-blue); }
 .feedback-container-global { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); width: 100%; max-width: 800px; padding: 0 1rem; z-index: 100; }
-.feedback-box { padding: 1rem 1.5rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 500; flex-direction: column; gap: 0.5rem; align-items: flex-start; }
-.feedback-box.correct { background-color: var(--success-color); color: white; }
+.feedback-box { padding: 1rem 1.5rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; flex-direction: column; gap: 0.75rem; align-items: flex-start; }
+.feedback-box.correct { background-color: var(--success-color); color: white; align-items: center; font-size: 1.2rem; font-weight: 500; }
 .feedback-box.incorrect { background-color: var(--error-color); color: white; }
-.feedback-box.incorrect .correct-answer { font-weight: 700; margin-left: 0.5rem; }
-.feedback-box.incorrect .explanation { font-size: 1rem; font-weight: 400; }
+.feedback-header strong { font-weight: 700; }
+.feedback-box.incorrect .correct-answer { font-weight: 700; margin-left: 0.5rem; font-style: italic; }
+.explanation, .translation { font-size: 1rem; font-weight: 400; width: 100%; text-align: center; }
+.explanation { padding-top: 0.5rem; border-top: 1px solid rgba(255, 255, 255, 0.3); }
+.correct .translation { color: rgba(255, 255, 255, 0.9); font-style: italic; border-top: none; padding-top: 0; }
+.incorrect .translation { padding-top: 0.5rem; border-top: 1px solid rgba(255, 255, 255, 0.3); }
+.incorrect .translation strong { font-weight: 700; }
 .next-action-bar { position: fixed; bottom: 0; left: 0; right: 0; padding: 1rem; background-color: var(--card-background); border-top: 1px solid var(--border-color); display: flex; justify-content: center; z-index: 99; }
 .btn-secondary { padding: 0.8rem 3rem; font-size: 1.2rem; }
 </style>

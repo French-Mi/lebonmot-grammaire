@@ -1,126 +1,148 @@
-<!-- src/components/quiz-types/QuizMatchPairs.vue -->
 <script setup lang="ts">
-import { ref, reactive } from 'vue';
+import { ref, reactive, onMounted, watch } from 'vue';
 import type { MatchPairsExercise, MatchPair } from '@/data/pronouns';
 import VWord from '@/components/ui/VWord.vue';
+import draggable from 'vuedraggable';
 
 const props = defineProps<{
   exerciseData: MatchPairsExercise;
 }>();
 
 const emit = defineEmits<{
-  (e: 'completed', payload: { isPerfect: boolean }): void
+  (e: 'completed'): void,
+  (e: 'feedback', payload: { isCorrect: boolean; translation_de?: string; questionIndex: number; }): void
 }>();
 
-const shuffle = (array: any[]) => [...array].sort(() => Math.random() - 0.5);
-
-const slots = reactive(props.exerciseData.sentenceStarts.map(s => ({
-  ...s,
-  droppedClause: null as MatchPair | null,
-  feedbackClass: ''
-})));
-
-const draggableClauses = ref(shuffle(props.exerciseData.relativeClauses));
-
-const isSubmitted = ref(false);
-let draggedItem: MatchPair | null = null;
+// Statt zwei Listen, verwenden wir eine "slots"-Liste, um den Zustand besser zu verwalten.
+const slots = ref<(MatchPair & { droppedClause: MatchPair | null; feedbackClass: string })[]>([]);
+const draggableClauses = ref<MatchPair[]>([]);
 
 const getWords = (text: string) => text.split(/(\s+)/).filter(part => part.length > 0);
+const shuffle = (array: any[]) => [...array].sort(() => Math.random() - 0.5);
 
-const onDragStart = (item: MatchPair) => {
-  if (isSubmitted.value) return;
-  draggedItem = item;
+const initializeState = () => {
+    slots.value = props.exerciseData.sentenceStarts.map(s => ({
+        ...s,
+        droppedClause: null,
+        feedbackClass: ''
+    }));
+    draggableClauses.value = shuffle([...props.exerciseData.relativeClauses]);
 };
 
-const onDrop = (slotId: number) => {
-  if (isSubmitted.value || !draggedItem) return;
+onMounted(initializeState);
+watch(() => props.exerciseData, initializeState);
 
-  const targetSlot = slots.find(s => s.id === slotId);
-  if (targetSlot && !targetSlot.droppedClause) {
-    if (targetSlot.droppedClause) {
-      draggableClauses.value.push(targetSlot.droppedClause);
-    }
-    targetSlot.droppedClause = draggedItem;
-    draggableClauses.value = draggableClauses.value.filter(c => c.id !== draggedItem!.id);
-    draggedItem = null;
-  }
-};
+const onDrop = (slot: (typeof slots.value)[0], event: DragEvent) => {
+    const itemId = event.dataTransfer?.getData('text/plain');
+    if (!itemId || slot.droppedClause) return;
 
-const putBack = (slotId: number) => {
-  if (isSubmitted.value) return;
-  const targetSlot = slots.find(s => s.id === slotId);
-  if (targetSlot && targetSlot.droppedClause) {
-    draggableClauses.value.push(targetSlot.droppedClause);
-    targetSlot.droppedClause = null;
-  }
-};
+    const clause = draggableClauses.value.find(c => c.id === parseInt(itemId, 10));
+    if (clause && clause.id === slot.id) {
+        slot.droppedClause = clause;
+        slot.feedbackClass = 'correct';
+        draggableClauses.value = draggableClauses.value.filter(c => c.id !== clause.id);
 
-const checkAnswers = () => {
-  if (isSubmitted.value) return;
-  isSubmitted.value = true;
-  let allCorrect = true;
+        const fullTranslation = `${slot.translation_de} ${clause.translation_de.replace('...', '')}`.trim();
+        emit('feedback', { isCorrect: true, translation_de: fullTranslation, questionIndex: -1 });
 
-  slots.forEach(slot => {
-    if (slot.droppedClause && slot.id === slot.droppedClause.id) {
-      slot.feedbackClass = 'correct';
+        if (draggableClauses.value.length === 0) {
+            setTimeout(() => emit('completed'), 1200);
+        }
     } else {
-      allCorrect = false;
-      slot.feedbackClass = 'incorrect';
+        slot.feedbackClass = 'incorrect';
+        setTimeout(() => { slot.feedbackClass = '' }, 800);
     }
-  });
+};
 
-  // HIER IST DIE WICHTIGE ÄNDERUNG: Das Event wird immer ausgelöst
-  emit('completed', { isPerfect: allCorrect });
+const onDragStart = (event: DragEvent, item: MatchPair) => {
+  if (event.dataTransfer) {
+    event.dataTransfer.setData('text/plain', item.id.toString());
+    event.dataTransfer.effectAllowed = 'move';
+  }
 };
 </script>
 
 <template>
   <div class="quiz-container card">
     <p class="quiz-instructions">{{ exerciseData.instructions }}</p>
-
-    <div class="match-container">
-      <div class="column">
-        <div v-for="slot in slots" :key="slot.id" class="slot" :class="slot.feedbackClass" @dragover.prevent @drop="onDrop(slot.id)">
-          <div class="slot-text">
-            <VWord v-for="(word, index) in getWords(slot.text)" :key="`slot-${index}`" :word="word" />
-          </div>
-          <div v-if="slot.droppedClause" class="part dropped" @click="putBack(slot.id)">
-            <VWord v-for="(word, index) in getWords(slot.droppedClause.text)" :key="`dropped-${index}`" :word="word" />
-          </div>
-        </div>
-      </div>
-
-      <div class="column">
+    <div class="columns">
+      <div class="column drop-column">
         <div
-          v-for="clause in draggableClauses"
-          :key="clause.id"
-          class="part draggable"
-          :draggable="!isSubmitted"
-          @dragstart="onDragStart(clause)"
+            v-for="slot in slots"
+            :key="slot.id"
+            class="dropzone"
+            :class="[slot.feedbackClass, { 'filled': slot.droppedClause }]"
+            @dragover.prevent
+            @drop.prevent="onDrop(slot, $event)"
         >
-          <VWord v-for="(word, index) in getWords(clause.text)" :key="`clause-${index}`" :word="word" />
+          <span class="sentence-text">
+            <template v-for="(word, index) in getWords(slot.text)" :key="index">
+                <VWord v-if="word.trim().length > 0" :word="word" />
+                <span v-else v-html="'&nbsp;'"></span>
+            </template>
+          </span>
+          <span v-if="slot.droppedClause" class="dropped-clause">
+            <template v-for="(word, index) in getWords(slot.droppedClause.text.replace('...',' '))" :key="index">
+                <VWord v-if="word.trim().length > 0" :word="word" />
+                <span v-else v-html="'&nbsp;'"></span>
+            </template>
+          </span>
         </div>
       </div>
-    </div>
-     <div class="quiz-actions">
-      <button @click="checkAnswers" v-if="!isSubmitted" class="btn btn-primary">Prüfen</button>
+      <div class="column drag-column">
+        <div
+            v-for="clause in draggableClauses"
+            :key="clause.id"
+            class="draggable-item"
+            :draggable="true"
+            @dragstart="onDragStart($event, clause)"
+        >
+          <template v-for="(word, index) in getWords(clause.text)" :key="index">
+            <VWord v-if="word.trim().length > 0" :word="word" />
+            <span v-else v-html="'&nbsp;'"></span>
+          </template>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.quiz-instructions { text-align: center; margin-bottom: 2rem; color: var(--muted-text); font-size: 1.1rem; }
-.match-container { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem; }
+.quiz-instructions { text-align: center; margin-bottom: 2rem; font-size: 1.1rem; color: var(--muted-text); }
+.columns { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
 .column { display: flex; flex-direction: column; gap: 1rem; }
-.slot { display: flex; align-items: center; border: 2px dashed var(--border-color); border-radius: 8px; padding: 0.75rem; min-height: 50px; transition: all 0.2s; }
-.slot.correct { border-color: var(--success-color); background-color: #e6f9f0; }
-.slot.incorrect { border-color: var(--error-color); background-color: #fbe9e9; }
-.slot-text { flex-grow: 1; font-size: 1.1rem; padding-right: 0.5rem; }
-.part { padding: 0.5rem 1rem; border-radius: 6px; background-color: white; border: 1px solid var(--border-color); font-size: 1.1rem; user-select: none; line-height: 1.5; white-space: pre-wrap; }
-.draggable { cursor: grab; background-color: var(--light-blue); border-color: var(--primary-blue); }
-.draggable:active { cursor: grabbing; }
-.dropped { cursor: pointer; border-style: solid; width: 100%; }
-.quiz-actions { display: flex; justify-content: center; }
-.btn { padding: 0.75rem 2rem; border: none; border-radius: 5px; cursor: pointer; }
-.btn-primary { background-color: var(--primary-blue); color: white; }
+
+.dropzone, .draggable-item { padding: 1rem; border-radius: 8px; background-color: white; min-height: 60px; display: flex; align-items: baseline; flex-wrap: wrap; line-height: 1.5; transition: all 0.3s ease; }
+.sentence-text { display: inline; }
+.dropzone { border: 2px dashed var(--border-color); }
+.draggable-item { border: 1px solid var(--border-color); cursor: grab; background-color: #eef7ff; }
+.draggable-item:active { cursor: grabbing; }
+
+.dropzone.filled {
+    border-style: solid;
+    padding: 0.5rem 1rem;
+}
+.dropzone.correct {
+    border-color: var(--success-color);
+    background-color: #f0fff4;
+    animation: pulse-green 0.5s;
+}
+.dropzone.incorrect {
+    border-color: var(--error-color);
+    animation: shake-horizontal 0.4s;
+}
+.dropped-clause {
+    margin-left: 0.25rem;
+}
+
+@keyframes pulse-green {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+@keyframes shake-horizontal {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
 </style>
