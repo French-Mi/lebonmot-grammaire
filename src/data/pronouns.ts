@@ -190,9 +190,15 @@ export const pronounData: PronounTopicData = {
             ]
           }]
         },
+        // HIER SIND DIE WIEDERHERGESTELLTEN LEVEL
         { level: 2, uniqueId: 'obj-2', title: 'Direktes Objekt ersetzen', description: 'Übe das Ersetzen und die korrekte Satzstellung.', hasTheory: false, exercises: [] },
         { level: 3, uniqueId: 'obj-3', title: 'Indirektes Objekt ersetzen', description: 'Übe das Ersetzen und die korrekte Satzstellung.', hasTheory: false, exercises: [] },
         { level: 4, uniqueId: 'obj-4', title: 'Gemischte Objekte', description: 'Wende direkte und indirekte Objektpronomen an.', hasTheory: false, exercises: [] },
+        { level: 5, uniqueId: 'obj-5', title: 'Das Pronomen "en"', description: 'Lerne, "en" korrekt zu verwenden.', hasTheory: false, exercises: [] },
+        { level: 6, uniqueId: 'obj-6', title: 'Das Pronomen "y"', description: 'Lerne, "y" korrekt zu verwenden.', hasTheory: false, exercises: [] },
+        { level: 7, uniqueId: 'obj-7', title: '"en" und "y" gemischt', description: 'Unterscheide zwischen "en" und "y".', hasTheory: false, exercises: [] },
+        { level: 8, uniqueId: 'obj-8', title: 'Alle Pronomen gemischt', description: 'Ein umfassender Test aller Pronomen.', hasTheory: false, exercises: [] },
+        { level: 9, uniqueId: 'obj-9', title: 'Imperativ mit Pronomen', description: 'Bilde Befehlsätze mit Objektpronomen.', hasTheory: false, exercises: [] }
       ]
     }
   ]
