@@ -16,10 +16,12 @@ defineProps<{
       <p class="level-description">{{ levelData.description }}</p>
     </div>
     <div class="level-actions">
-      <RouterLink :to="`/topic/${topicId}/theory/${levelData.uniqueId}`" class="btn btn-theory">
+      <RouterLink v-if="levelData.hasTheory" :to="`/topic/${topicId}/theory/${levelData.uniqueId}`" class="btn btn-theory">
         Theorie
       </RouterLink>
-      <RouterLink :to="`/topic/${topicId}/exercise/${levelData.uniqueId}`" class="btn btn-exercise">
+      <button v-else class="btn btn-theory" disabled>Theorie</button>
+
+      <RouterLink :to="`/topic/${topicId}/level/${levelData.uniqueId}`" class="btn btn-exercise">
         Übungen
       </RouterLink>
     </div>
@@ -38,56 +40,17 @@ defineProps<{
 .level-card:last-child {
   border-bottom: none;
 }
-.level-info {
-  flex-grow: 1;
-}
-.level-number {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--primary-blue);
-  text-transform: uppercase;
-}
-.level-title {
-  font-size: 1.25rem;
-  margin: 0.25rem 0 0.5rem 0;
-}
-.level-description {
-  color: var(--muted-text);
-  font-size: 0.95rem;
-}
-.level-actions {
-  display: flex;
-  gap: 0.75rem;
-  align-items: center;
-}
-.btn {
-  display: inline-block;
-  padding: 0.6rem 1.5rem;
-  border-radius: 5px;
-  border: none;
-  font-size: 1rem;
-  font-weight: 500;
-  cursor: pointer;
-  text-align: center;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-.btn:hover {
-  transform: translateY(-2px);
-  filter: brightness(1.1);
-}
-.btn-exercise {
-  background-color: var(--primary-blue);
-  color: white;
-}
-.btn-exercise:hover {
-    background-color: #0b5ed7;
-}
-.btn-theory {
-  background-color: var(--success-color);
-  color: white;
-}
-.btn-theory:hover {
-  background-color: #146c43;
-}
+.level-info { flex-grow: 1; }
+.level-number { font-size: 0.8rem; font-weight: 700; color: var(--primary-blue); text-transform: uppercase; }
+.level-title { font-size: 1.25rem; margin: 0.25rem 0 0.5rem 0; }
+.level-description { color: var(--muted-text); font-size: 0.95rem; }
+.level-actions { display: flex; gap: 0.75rem; align-items: center; }
+.btn { display: inline-block; padding: 0.6rem 1.5rem; border-radius: 5px; border: none; font-size: 1rem; font-weight: 500; cursor: pointer; text-align: center; transition: all 0.2s; white-space: nowrap; text-decoration: none; color: white; }
+.btn:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.1); }
+.btn-exercise { background-color: var(--primary-blue); }
+.btn-exercise:hover { background-color: #0b5ed7; }
+.btn-theory { background-color: var(--success-color); }
+.btn-theory:hover:not(:disabled) { background-color: #146c43; }
+.btn:disabled { background-color: #a3d9b8; cursor: not-allowed; opacity: 0.7; }
+.btn:disabled:hover { transform: none; filter: none; }
 </style>

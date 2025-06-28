@@ -1,23 +1,25 @@
 // src/data/pronouns.ts
 
 // --- Strukturen für die Übungstypen ---
-export interface FillInTheBlankQuestion {
-  text_start: string;
-  text_blank: string;
-  text_end: string;
-  explanation?: string;
-  translation_de?: string;
+export interface BaseExercise {
+  type: string;
+  instructions: string;
+  shortTitle: string;
 }
-export interface FillInTheBlankExercise { type: 'fillInTheBlank'; instructions: string; questions: FillInTheBlankQuestion[]; }
+
+export interface FillInTheBlankQuestion { text_start: string; text_blank: string; text_end: string; explanation?: string; translation_de?: string; }
+export interface FillInTheBlankExercise extends BaseExercise { type: 'fillInTheBlank'; questions: FillInTheBlankQuestion[]; answerOptions?: string[]; }
+
 export interface SentenceOrderQuestion { parts: string[]; correctOrder: number[]; explanation?: string; translation_de?: string; }
-export interface SentenceOrderExercise { type: 'sentenceOrder'; instructions: string; questions: SentenceOrderQuestion[]; }
+export interface SentenceOrderExercise extends BaseExercise { type: 'sentenceOrder'; questions: SentenceOrderQuestion[]; }
+
 export interface MatchPair { id: number; text: string; translation_de: string; }
-export interface MatchPairsExercise { type: 'matchPairs'; instructions: string; sentenceStarts: MatchPair[]; relativeClauses: MatchPair[]; }
+export interface MatchPairsExercise extends BaseExercise { type: 'matchPairs'; sentenceStarts: MatchPair[]; relativeClauses: MatchPair[]; }
+
 export interface IdentifyPartQuestion { sentence: string; prompt: string; answer: string; explanation?: string; }
-export interface IdentifyPartExercise { type: 'identifyPart', instructions: string, questions: IdentifyPartQuestion[] }
-export interface TranslateExercise { type: 'translate', instructions: string }
-export interface MultipleChoiceExercise { type: 'multipleChoice', instructions: string }
-export type Exercise = | FillInTheBlankExercise | SentenceOrderExercise | MatchPairsExercise | IdentifyPartExercise | TranslateExercise | MultipleChoiceExercise;
+export interface IdentifyPartExercise extends BaseExercise { type: 'identifyPart', questions: IdentifyPartQuestion[] }
+
+export type Exercise = | FillInTheBlankExercise | SentenceOrderExercise | MatchPairsExercise | IdentifyPartExercise;
 
 // --- Haupt-Datenstruktur ---
 export interface TopicLevel {
@@ -49,11 +51,13 @@ export const pronounData: PronounTopicData = {
           exercises: [
             {
               type: 'fillInTheBlank',
-              instructions: 'Fülle die Lücken mit dem korrekten Relativpronomen (qui, que oder qu\').',
+              shortTitle: 'Lückentext',
+              instructions: 'Fülle die Lücken mit dem korrekten Relativpronomen.',
+              answerOptions: ['qui', 'que', "qu'"],
               questions: [
-                { text_start: "L'homme ", text_blank: "qui", text_end: " parle est mon professeur.", explanation: "'qui' wird verwendet, weil es das Subjekt des Nebensatzes ist (wer spricht?).", translation_de: "Der Mann, der spricht, ist mein Lehrer." },
-                { text_start: "La pomme ", text_blank: "que", text_end: " je mange est rouge.", explanation: "'que' wird verwendet, weil es das direkte Objekt ist (wen oder was esse ich?).", translation_de: "Der Apfel, den ich esse, ist rot." },
-                { text_start: "C'est le livre ", text_blank: "qu'", text_end: " il achète.", explanation: "'que' wird zu 'qu'' vor einem Vokal. Es ist das direkte Objekt (was kauft er?).", translation_de: "Das ist das Buch, das er kauft." },
+                { text_start: "L'homme ", text_blank: "qui", text_end: " parle est mon professeur.", explanation: "'qui' ist Subjekt (wer spricht?).", translation_de: "Der Mann, der spricht, ist mein Lehrer." },
+                { text_start: "La pomme ", text_blank: "que", text_end: " je mange est rouge.", explanation: "'que' ist Objekt (was esse ich?).", translation_de: "Der Apfel, den ich esse, ist rot." },
+                { text_start: "C'est le livre ", text_blank: "qu'", text_end: " il achète.", explanation: "'que' wird zu 'qu'' vor Vokal.", translation_de: "Das ist das Buch, das er kauft." },
                 { text_start: "Les amis ", text_blank: "qui", text_end: " arrivent sont très sympathiques.", explanation: "'qui' ist das Subjekt des Nebensatzes (wer kommt an?).", translation_de: "Die Freunde, die ankommen, sind sehr sympathisch." },
                 { text_start: "La chanson ", text_blank: "que", text_end: " tu écoutes est nouvelle.", explanation: "'que' ist das direkte Objekt (was hörst du?).", translation_de: "Das Lied, das du hörst, ist neu." },
                 { text_start: "Voilà la femme ", text_blank: "qui", text_end: " travaille à la banque.", explanation: "'qui' ist das Subjekt des Nebensatzes (wer arbeitet?).", translation_de: "Das ist die Frau, die in der Bank arbeitet." }
@@ -61,6 +65,7 @@ export const pronounData: PronounTopicData = {
             },
             {
               type: 'sentenceOrder',
+              shortTitle: 'Satzteile ordnen',
               instructions: 'Bilde korrekte Sätze, indem du die Satzteile in die richtige Reihenfolge ziehst.',
               questions: [
                 {
@@ -85,6 +90,7 @@ export const pronounData: PronounTopicData = {
             },
             {
               type: 'matchPairs',
+              shortTitle: 'Paare bilden',
               instructions: 'Ziehe den passenden Relativsatz auf den richtigen Satzanfang.',
               sentenceStarts: [
                 { id: 1, text: "Lucas est un garçon...", translation_de: "Lucas ist ein Junge..." },
@@ -107,7 +113,49 @@ export const pronounData: PronounTopicData = {
           title: 'Qui / que / qu\' / où',
           description: 'Erweitere dein Wissen um das Relativpronomen für Orte.',
           hasTheory: true,
-          exercises: []
+          exercises: [
+            {
+                type: 'fillInTheBlank',
+                shortTitle: 'Lückentext',
+                instructions: 'Fülle die Lücken mit qui, que, qu\' oder où.',
+                answerOptions: ['qui', 'que', "qu'", 'où'],
+                questions: [
+                    { text_start: "La ville ", text_blank: "où", text_end: " j'habite est belle.", explanation: "'où' bezieht sich auf einen Ort (die Stadt).", translation_de: "Die Stadt, in der ich wohne, ist schön." },
+                    { text_start: "Le chat ", text_blank: "qui", text_end: " dort est gris.", explanation: "'qui' ist das Subjekt (wer schläft?).", translation_de: "Die Katze, die schläft, ist grau." },
+                    { text_start: "La robe ", text_blank: "que", text_end: " tu portes est jolie.", explanation: "'que' ist das Objekt (was trägst du?).", translation_de: "Das Kleid, das du trägst, ist hübsch." },
+                    { text_start: "C'est le parc ", text_blank: "où", text_end: " nous jouons.", explanation: "'où' bezieht sich auf einen Ort (der Park).", translation_de: "Das ist der Park, wo wir spielen." },
+                    { text_start: "Le gâteau ", text_blank: "qu'", text_end: " il mange est bon.", explanation: "'que' wird zu 'qu'' vor Vokal. Es ist das Objekt.", translation_de: "Der Kuchen, den er isst, ist gut." },
+                    { text_start: "Le chien ", text_blank: "qui", text_end: " court vite est noir.", explanation: "'qui' ist das Subjekt (wer rennt?).", translation_de: "Der Hund, der schnell rennt, ist schwarz." }
+                ]
+            },
+            {
+                type: 'sentenceOrder',
+                shortTitle: 'Satzteile ordnen',
+                instructions: 'Bringe die Satzteile in die richtige Reihenfolge.',
+                questions: [
+                    { parts: ["C'est", "la ville", "où", "j'habite."], correctOrder: [0, 1, 2, 3], translation_de: "Das ist die Stadt, in der ich wohne." },
+                    { parts: ["Le livre", "est rouge.", "qui", "est sur la table"], correctOrder: [0, 2, 3, 1], translation_de: "Das Buch, das auf dem Tisch ist, ist rot." },
+                    { parts: ["tu aimes", "Le pull", "est bleu.", "que"], correctOrder: [1, 3, 0, 2], translation_de: "Der Pullover, den du magst, ist blau." }
+                ]
+            },
+            {
+                type: 'matchPairs',
+                shortTitle: 'Paare bilden',
+                instructions: 'Verbinde die Satzanfänge mit den passenden Relativsätzen.',
+                sentenceStarts: [
+                    { id: 1, text: "Voici le jardin...", translation_de: "Hier ist der Garten..." },
+                    { id: 2, text: "C'est la chanson...", translation_de: "Das ist das Lied..." },
+                    { id: 3, text: "Le garçon...", translation_de: "Der Junge..." },
+                    { id: 4, text: "Le restaurant...", translation_de: "Das Restaurant..." }
+                ],
+                relativeClauses: [
+                    { id: 1, text: "...où les fleurs sont belles.", translation_de: "...wo die Blumen schön sind." },
+                    { id: 2, text: "...que j'écoute.", translation_de: "...das ich höre." },
+                    { id: 3, text: "...qui dessine une maison.", translation_de: "...der ein Haus zeichnet." },
+                    { id: 4, text: "...où nous mangeons ce soir.", translation_de: "...wo wir heute Abend essen." }
+                ]
+            }
+          ]
         }
       ]
     },
@@ -123,6 +171,7 @@ export const pronounData: PronounTopicData = {
           hasTheory: false,
           exercises: [{
             type: 'identifyPart',
+            shortTitle: 'Objekte erkennen',
             instructions: 'Lies den Satz und gib den gefragten Satzteil ein.',
             questions: [
               { sentence: "Le garçon mange une pomme.", prompt: "Was ist das direkte Objekt?", answer: "une pomme" },

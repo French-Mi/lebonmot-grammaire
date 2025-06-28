@@ -1,8 +1,12 @@
 <script setup lang="ts">
 import CelebrationAnimation from '@/components/dashboard/CelebrationAnimation.vue';
 
+// KORREKTUR: Props sind jetzt optional, um Fehler zu vermeiden, wenn sie nicht übergeben werden.
 defineProps<{
-  mistakeCount: number
+  title?: string,
+  mistakeCount: number,
+  showMistakeRepeat?: boolean,
+  buttonTextRepeat?: string
 }>()
 
 const emit = defineEmits<{
@@ -16,7 +20,7 @@ const emit = defineEmits<{
 <template>
   <div class="level-summary-container card">
     <CelebrationAnimation />
-    <h1 class="summary-title">Level abgeschlossen!</h1>
+    <h1 class="summary-title">{{ title || 'Level abgeschlossen!' }}</h1>
 
     <p v-if="mistakeCount === 1" class="summary-subtitle">
       Du hast 1 Fehler. Du kannst ihn jetzt gezielt wiederholen.
@@ -29,11 +33,11 @@ const emit = defineEmits<{
     </p>
 
     <div class="summary-actions">
-      <button v-if="mistakeCount > 0" @click="emit('repeat-mistakes')" class="btn btn-primary">
+      <button v-if="mistakeCount > 0 && showMistakeRepeat !== false" @click="emit('repeat-mistakes')" class="btn btn-primary">
         Fehler wiederholen
       </button>
       <button @click="emit('repeat-all')" class="btn btn-secondary">
-        Level wiederholen
+        {{ buttonTextRepeat || 'Level wiederholen' }}
       </button>
       <button @click="emit('back-to-topic')" class="btn btn-link">
         Zurück zur Level-Übersicht
@@ -76,6 +80,8 @@ const emit = defineEmits<{
   padding: 0.8rem 1rem;
   font-size: 1.1rem;
   border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.2s;
 }
 .btn-primary {
     background-color: var(--primary-blue);
@@ -92,5 +98,6 @@ const emit = defineEmits<{
   border: none;
   color: var(--primary-blue);
   text-decoration: underline;
+  margin-top: 0.5rem;
 }
 </style>
