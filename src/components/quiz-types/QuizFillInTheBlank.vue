@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted } from 'vue';
+import { ref, computed, nextTick, onMounted, watch } from 'vue';
 import type { FillInTheBlankExercise } from '@/data/pronouns/types';
 
 const props = defineProps<{
@@ -7,7 +7,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'feedback', payload: { isCorrect: boolean, correctAnswer?: string, explanation?: string, questionIndex: number, translation_de?: string }): void,
+  (e: 'feedback', payload: { isCorrect: boolean, userInput: string, correctAnswer?: string, explanation?: string, questionIndex: number, translation_de?: string }): void,
   (e: 'completed'): void
 }>()
 
@@ -17,6 +17,12 @@ const inputRef = ref<HTMLInputElement | null>(null);
 
 const currentQuestion = computed(() => {
   return props.exerciseData.questions[currentQuestionIndex.value];
+});
+
+watch(currentQuestionIndex, () => {
+    nextTick(() => {
+        inputRef.value?.focus();
+    });
 });
 
 onMounted(() => {
@@ -30,8 +36,10 @@ const checkAnswer = () => {
     }
 
     const isCorrect = userAnswer.value.trim().toLowerCase() === currentQuestion.value.text_blank.toLowerCase();
+    // HIER IST DIE WICHTIGE ÄNDERUNG: Die Eingabe des Nutzers wird an das Feedback-Event übergeben.
     emit('feedback', {
         isCorrect,
+        userInput: userAnswer.value, // Diese Zeile ist entscheidend für den Fehler-Export
         correctAnswer: currentQuestion.value.text_blank,
         explanation: currentQuestion.value.explanation,
         questionIndex: currentQuestionIndex.value,
@@ -78,6 +86,10 @@ defineExpose({
         :placeholder="'...'"
         ref="inputRef"
         :style="{ width: Math.max(100, currentQuestion.text_blank.length * 12) + 'px' }"
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="off"
+        spellcheck="false"
       />
       <span>{{ currentQuestion.text_end }}</span>
     </p>

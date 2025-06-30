@@ -7,7 +7,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'feedback', payload: { isCorrect: boolean, correctAnswer?: string, explanation?: string, questionIndex: number, translation_de?: string }): void,
+  (e: 'feedback', payload: { isCorrect: boolean, userInput: string, correctAnswer?: string, explanation?: string, questionIndex: number, translation_de?: string }): void,
   (e: 'completed'): void
 }>()
 
@@ -38,10 +38,12 @@ const checkAnswer = () => {
 
     const correctAnswerSorted = [...currentQuestion.value.answer].sort().join(' ');
     const userAnswerSorted = [...selectedWords.value].sort().join(' ');
+
     const isCorrect = userAnswerSorted.toLowerCase() === correctAnswerSorted.toLowerCase();
 
     emit('feedback', {
         isCorrect,
+        userInput: selectedWords.value.join(' '), // userInput hinzugefügt
         correctAnswer: currentQuestion.value.answer.join(' '),
         explanation: currentQuestion.value.explanation,
         questionIndex: currentQuestionIndex.value,
@@ -65,9 +67,6 @@ defineExpose({
 
 <template>
   <div class="click-the-word-quiz">
-     <div class="progress-bar">
-      <div class="progress-bar-fill" :style="{ width: `${(currentQuestionIndex + 1) / exerciseData.questions.length * 100}%` }"></div>
-    </div>
     <h3 class="instruction-prompt">{{ currentQuestion.prompt }}</h3>
 
     <div class="sentence-container">
@@ -90,8 +89,6 @@ defineExpose({
 </template>
 
 <style scoped>
-.progress-bar { width: 100%; background-color: #e9ecef; border-radius: 8px; height: 10px; margin-bottom: 2rem; overflow: hidden; }
-.progress-bar-fill { height: 100%; background-color: var(--primary-blue); transition: width 0.3s ease; }
 .instruction-prompt {
     text-align: center;
     font-size: 1.2rem;

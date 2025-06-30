@@ -19,14 +19,22 @@ import LevelSummary from '@/components/ui/LevelSummary.vue';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-
 type FeedbackPayload = {
     isCorrect: boolean;
+    userInput: string;
     correctAnswer?: string;
     explanation?: string;
     questionIndex: number;
     translation_de?: string;
 };
+
+type MistakeRecord = {
+  topicId: string;
+  levelId: string;
+  exercise: Exercise;
+  questionIndex: number;
+  userInput: string;
+}
 
 const route = useRoute();
 const router = useRouter();
@@ -46,7 +54,8 @@ const feedbackDetails = ref<FeedbackPayload | null>(null);
 const quizComponentRef = ref<{ nextQuestion: () => void } | null>(null);
 const continueButtonRef = ref<HTMLButtonElement | null>(null);
 const isMistakeRound = ref(false);
-const currentRoundMistakes = ref<any[]>([]);
+const currentRoundMistakes = ref<MistakeRecord[]>([]);
+const allRoundAnswers = ref<FeedbackPayload[]>([]);
 
 const setupExercises = (mode: 'mistakes' | number) => {
   isMistakeRound.value = mode === 'mistakes';
@@ -54,6 +63,7 @@ const setupExercises = (mode: 'mistakes' | number) => {
   showFeedback.value = false;
   feedbackDetails.value = null;
   currentRoundMistakes.value = [];
+  allRoundAnswers.value = [];
   let newQueue: Exercise[] = [];
 
   const allLevels = pronounData.categories.flatMap(c => c.levels);
@@ -102,12 +112,15 @@ const isLastExercise = computed(() => currentExerciseIndex.value >= exerciseQueu
 const summaryTitle = computed(() => isMistakeRound.value ? "Fehlerrunde beendet" : "Übung abgeschlossen!");
 
 const handleFeedback = (payload: FeedbackPayload) => {
+    allRoundAnswers.value.push(payload);
+
     if (!payload.isCorrect) {
         currentRoundMistakes.value.push({
             topicId: topicId.value,
             levelId: levelId.value,
             exercise: currentExercise.value,
-            questionIndex: payload.questionIndex
+            questionIndex: payload.questionIndex,
+            userInput: payload.userInput,
         });
     }
     feedbackDetails.value = payload;
@@ -156,7 +169,7 @@ const handleExerciseCompleted = () => {
             }
         }
 
-        currentRoundMistakes.value.forEach(mistake => grammarStore.addMistake(mistake));
+        currentRoundMistakes.value.forEach(mistake => grammarStore.addMistake(mistake as any));
         levelFinished.value = true;
     }
 };
@@ -185,65 +198,64 @@ const repeatThis = () => {
 
 const backToSelection = () => router.push(`/topic/${topicId.value}/level/${levelId.value}`);
 
+const getQuestionTextForPdf = (exercise: Exercise, questionIndex: number): string => {
+    if (exercise.type === 'matchPairs') {
+        const q = (exercise.sentenceStarts[questionIndex]);
+        return q ? q.text : '';
+    }
+    if (!('questions' in exercise) || !Array.isArray(exercise.questions)) return exercise.instructions;
+    const q = exercise.questions[questionIndex];
+    if (!q) return '';
+
+    switch (exercise.type) {
+        case 'fillInTheBlank': return `${(q as FillInTheBlankQuestion).text_start} ___ ${(q as FillInTheBlankQuestion).text_end}`;
+        case 'sentenceOrder': return (q as SentenceOrderQuestion).parts.join(' | ');
+        case 'clickTheWord': return `${(q as ClickTheWordQuestion).sentence} (${(q as ClickTheWordQuestion).prompt})`;
+        case 'identifyPart': return `${(q as IdentifyPartQuestion).sentence} (${(q as IdentifyPartQuestion).prompt})`;
+        default: return '';
+    }
+};
+
 const downloadPdf = () => {
   const doc = new jsPDF();
   const level = currentLevelData.value;
-  if (!level) return;
+  const exercise = currentExercise.value;
+  if (!level || !exercise) return;
 
-  const head = [['Übung', 'Frage / Satz', 'Korrekte Antwort']];
-  const body: string[][] = [];
+  const category = pronounData.categories.find(c => c.levels.some(l => l.uniqueId === levelId.value));
+  const title = `Pronomen > ${category?.title.replace(/A\)|B\)/, '').trim()} > Level ${level.level}: ${level.title}`;
+  doc.text(title, 14, 15);
+  doc.setFontSize(12);
+  doc.text(`Übung: ${exercise.shortTitle}`, 14, 22);
 
-  exerciseQueue.value.forEach((exercise: Exercise) => {
-    if ('questions' in exercise && Array.isArray(exercise.questions)) {
-      exercise.questions.forEach(q => {
-        let questionText = '';
-        let correctAnswer = '';
-
-        switch (exercise.type) {
-          case 'fillInTheBlank':
-            const qFill = q as FillInTheBlankQuestion;
-            questionText = `${qFill.text_start} ___ ${qFill.text_end}`;
-            correctAnswer = qFill.text_blank;
-            break;
-          case 'sentenceOrder':
-            const qOrder = q as SentenceOrderQuestion;
-            questionText = qOrder.parts.join(' | ');
-            correctAnswer = qOrder.correctOrder.map(i => qOrder.parts[i]).join(' ');
-            break;
-          case 'identifyPart':
-            const qId = q as IdentifyPartQuestion;
-            questionText = `${qId.sentence} (${qId.prompt})`;
-            correctAnswer = qId.answer;
-            break;
-          case 'clickTheWord':
-            const qClick = q as ClickTheWordQuestion;
-            questionText = `${qClick.sentence} (${qClick.prompt})`;
-            correctAnswer = qClick.answer.join(' ');
-            break;
-        }
-        body.push([exercise.shortTitle, questionText, correctAnswer]);
-      });
-    } else if (exercise.type === 'matchPairs') {
-      exercise.sentenceStarts.forEach((start) => {
-        const clause = exercise.relativeClauses.find(c => c.id === start.id);
-        if (clause) {
-          body.push([exercise.shortTitle, start.text, clause.text]);
-        }
-      });
-    }
+  const head = [['Frage / Satz', 'Deine Antwort', 'Korrektur']];
+  const body = allRoundAnswers.value.map(answer => {
+      const questionText = getQuestionTextForPdf(currentExercise.value, answer.questionIndex);
+      const correction = answer.isCorrect ? 'Richtig' : answer.correctAnswer || '';
+      return [questionText, answer.userInput, correction];
   });
-
-  doc.text(`Le BonMot - ${level.title}`, 14, 15);
 
   autoTable(doc, {
-    head: head,
-    body: body,
-    startY: 25,
-    styles: { font: 'helvetica', fontSize: 10 },
-    headStyles: { fillColor: [74, 144, 226] },
+      head: head,
+      body: body,
+      startY: 30,
+      headStyles: {
+          fillColor: [74, 144, 226], // Blau
+          textColor: [255, 255, 255] // Weiß
+      },
+      didParseCell: function (data) {
+        if (data.column.index === 2) {
+          if (data.cell.raw === 'Richtig') {
+            data.cell.styles.textColor = '#198754';
+            data.cell.styles.fontStyle = 'bold';
+          } else {
+            data.cell.styles.textColor = '#dc3545';
+          }
+        }
+      }
   });
 
-  doc.save(`lebonmot-pronomen-${level.uniqueId}.pdf`);
+  doc.save(`lebonmot-ergebnisse-${level.uniqueId}.pdf`);
 };
 
 </script>
@@ -254,10 +266,11 @@ const downloadPdf = () => {
         v-if="levelFinished"
         :title="summaryTitle"
         :mistake-count="currentRoundMistakes.length"
-        :show-mistake-repeat="false"
+        :show-mistake-repeat="currentRoundMistakes.length > 0"
         :show-download="true"
         button-text-repeat="Nochmal üben"
         @repeat-all="repeatThis"
+        @repeat-mistakes="setupExercises('mistakes')"
         @back-to-topic="backToSelection"
         @download-pdf="downloadPdf"
     />
@@ -273,7 +286,6 @@ const downloadPdf = () => {
             <QuizMatchPairs ref="quizComponentRef" v-if="currentExercise.type === 'matchPairs'" :exercise-data="currentExercise" @completed="handleExerciseCompleted" @feedback="handleFeedback"/>
             <QuizIdentifyPart ref="quizComponentRef" v-if="currentExercise.type === 'identifyPart'" :exercise-data="currentExercise" @completed="handleExerciseCompleted" @feedback="handleFeedback" />
             <QuizClickTheWord ref="quizComponentRef" v-if="currentExercise.type === 'clickTheWord'" :exercise-data="currentExercise" @completed="handleExerciseCompleted" @feedback="handleFeedback" />
-
 
             <div v-if="showFeedback && feedbackDetails" class="feedback-container-global">
                 <div v-if="feedbackDetails.isCorrect" class="feedback-box correct">

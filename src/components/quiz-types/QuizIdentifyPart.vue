@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue';
-import type { IdentifyPartExercise } from '../../data/pronouns';
+// KORRIGIERTER IMPORT-PFAD
+import type { IdentifyPartExercise, IdentifyPartQuestion } from '@/data/pronouns/types';
 
 const props = defineProps<{
   exerciseData: IdentifyPartExercise;
@@ -8,12 +9,13 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'completed'): void,
-  (e: 'feedback', payload: { isCorrect: boolean, correctAnswer: string, questionIndex: number }): void
+  (e: 'feedback', payload: { isCorrect: boolean, userInput: string, correctAnswer: string, questionIndex: number }): void
 }>();
 
 
 const questions = reactive(
-  props.exerciseData.questions.map(q => ({
+  // Expliziter Typ für 'q' hinzugefügt, um "any" zu vermeiden
+  props.exerciseData.questions.map((q: IdentifyPartQuestion) => ({
     ...q,
     userInput: '',
     isCorrect: false,
@@ -28,24 +30,36 @@ const checkAnswers = () => {
   isSubmitted.value = true;
   let allCorrect = true;
 
-  questions.forEach((q, index) => {
+  // Explizite Typen für 'q' und 'index' hinzugefügt
+  questions.forEach((q: typeof questions[0], index: number) => {
     const isCorrect = q.userInput.trim().toLowerCase() === q.answer.toLowerCase();
     q.isCorrect = isCorrect;
     q.feedbackClass = isCorrect ? 'correct' : 'incorrect';
     if (!isCorrect) {
       allCorrect = false;
     }
-    // Sende Feedback für jede Frage einzeln
     emit('feedback', {
         isCorrect: isCorrect,
+        userInput: q.userInput,
         correctAnswer: q.answer,
         questionIndex: index
     });
   });
 
-  // Warten, bis alle Feedbacks angezeigt wurden, dann abschließen
-  setTimeout(() => emit('completed'), 1500);
+  // Warten, bis die Animationen abgeschlossen sind, bevor die Übung beendet wird.
+  setTimeout(() => {
+    emit('completed');
+  }, 1200);
 };
+
+// Diese Funktion wird vom Parent aufgerufen, falls die Übung übersprungen/fortgesetzt wird
+const nextQuestion = () => {
+    emit('completed');
+};
+
+defineExpose({
+    nextQuestion
+})
 </script>
 
 <template>
@@ -78,7 +92,6 @@ const checkAnswers = () => {
 </template>
 
 <style scoped>
-/* Unveränderte Styles */
 .quiz-instructions { text-align: center; margin-bottom: 2rem; font-size: 1.1rem; color: var(--muted-text); }
 .questions-container { display: flex; flex-direction: column; gap: 2.5rem; }
 .question-block { padding-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); }
