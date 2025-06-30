@@ -20,6 +20,22 @@ const content = computed<TheoryContent | null>(() => (theoryData as Record<strin
       <h1>{{ content.title }}</h1>
       <p class="intro-text" v-html="content.intro"></p>
 
+      <div v-if="content.comparisonTable && content.comparisonTable.rows.length > 0" class="table-container">
+        <table class="data-table rules-example-table">
+          <thead>
+            <tr>
+              <th v-for="header in content.comparisonTable.headers" :key="header" v-html="header"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in content.comparisonTable.rows" :key="row.category">
+              <td v-html="row.category"></td>
+              <td v-for="value in row.values" :key="value" v-html="value"></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
       <div v-if="content.pronounTable" class="table-container">
         <table class="data-table">
           <thead>
@@ -69,12 +85,12 @@ const content = computed<TheoryContent | null>(() => (theoryData as Record<strin
         </ol>
       </div>
 
-      <div v-if="content.comparisonTable" class="table-container comparison-table-section">
+      <div v-if="content.orderChart" class="table-container order-chart-section">
         <h3 class="chart-title">Reihenfolge der Objektpronomen:</h3>
         <table class="pronoun-order-table">
             <thead>
                 <tr>
-                    <th v-for="header in content.comparisonTable.headers" :key="header" v-html="header"></th>
+                    <th v-for="header in content.orderChart.headers" :key="header" v-html="header"></th>
                 </tr>
             </thead>
         </table>
@@ -104,6 +120,7 @@ h1 { font-size: 2.5rem; color: var(--header-blue); margin-bottom: 1rem; }
 .data-table, .pronoun-order-table { width: 100%; border-collapse: collapse; border: 1px solid #dee2e6; }
 .data-table th, .data-table td, .pronoun-order-table th { padding: 0.85rem 1rem; border: 1px solid #dee2e6; text-align: left; vertical-align: top; }
 .data-table thead, .pronoun-order-table thead { background-color: #f8f9fa; font-size: 1.1rem; }
+.rules-example-table td:first-child { width: 40%; }
 .example-cell { display: flex; align-items: center; gap: 0.5rem; }
 .translation { font-size: 0.9rem; color: var(--muted-text); padding-top: 0.2rem; font-style: italic; }
 .dual-table-container { display: flex; flex-direction: column; gap: 2rem; margin-bottom: 2rem; }
@@ -115,8 +132,8 @@ h1 { font-size: 2.5rem; color: var(--header-blue); margin-bottom: 1rem; }
 .rules-section h2 { margin-top: 0; margin-bottom: 1rem; }
 .rules-section ol { padding-left: 20px; }
 .rules-section li { margin-bottom: 0.5rem; line-height: 1.6; }
-.comparison-table-section { margin-top: 2.5rem; }
-.comparison-table-section h3 { text-align: left; margin-bottom: 1rem; font-size: 1.5rem; }
+.order-chart-section { margin-top: 2.5rem; }
+.chart-title { text-align: left; margin-bottom: 1rem; font-size: 1.5rem; font-weight: 500;}
 .pronoun-order-table th { text-align: center; font-weight: normal; vertical-align: middle; }
 .footnote { font-size: 0.9rem; color: var(--muted-text); margin-top: 1.5rem; margin-bottom: 2rem; }
 .card-placeholder { padding: 3rem; text-align: center; }

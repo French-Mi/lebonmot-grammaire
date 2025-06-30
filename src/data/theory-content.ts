@@ -56,6 +56,10 @@ export interface TheoryContent {
     title: string;
     items: TheoryExample[];
   }[];
+  // NEUE Eigenschaft speziell für die Reihenfolge-Tabelle
+  orderChart?: {
+      headers: string[];
+  };
 }
 
 const newPositioningRules: PositioningRules = {
@@ -66,16 +70,14 @@ const newPositioningRules: PositioningRules = {
     ]
 };
 
-const pronounOrderChart = {
+const pronounOrderChartData = {
     headers: [
         "me / m'<br>te / t'<br>nous<br>vous",
         "le<br>la<br>l'<br>les",
         "lui<br>leur",
         "y",
         "en"
-    ],
-    rows: [],
-    examples: []
+    ]
 };
 
 export const theoryData: Record<string, TheoryContent> = {
@@ -158,7 +160,7 @@ export const theoryData: Record<string, TheoryContent> = {
     },
     footnote: "*) <strong>me, te, le, la</strong> werden vor einem Vokal oder stummem 'h' zu <strong>m', t', l'</strong> abgekürzt.",
     positioningRules: newPositioningRules,
-    comparisonTable: pronounOrderChart
+    orderChart: pronounOrderChartData
   },
   'obj-3': {
     title: 'Indirekte Objektpronomen',
@@ -176,7 +178,7 @@ export const theoryData: Record<string, TheoryContent> = {
     },
     footnote: "*) <strong>me</strong> und <strong>te</strong> werden vor einem Vokal oder stummem 'h' zu <strong>m'</strong> und <strong>t'</strong> abgekürzt.",
     positioningRules: newPositioningRules,
-    comparisonTable: pronounOrderChart
+    orderChart: pronounOrderChartData
   },
   'obj-4': {
     title: 'Gemischte Objekte: Direkt & Indirekt im Vergleich',
@@ -208,62 +210,53 @@ export const theoryData: Record<string, TheoryContent> = {
         }
     },
     positioningRules: newPositioningRules,
-    comparisonTable: pronounOrderChart
+    orderChart: pronounOrderChartData
   },
   'obj-5': {
     title: "Das Objektpronomen «en»",
     intro: "Das Objektpronomen «en» bedeutet <i>davon, von dort, darüber</i>.<br><br>Als Pronomen vertritt <strong>en</strong> Ergänzungen mit der Präposition 'de':",
-    pronounTable: {
+    comparisonTable: {
         headers: ["Regel", "Beispiel"],
         rows: [
             {
-                pronoun: "→ Nomen mit Teilungsartikel (de la, du, des...)",
-                replaces: "",
-                example: {
-                    sentence: "Tu prends <strong>du fromage</strong>?<br>→ Oui, j’<strong>en</strong> prends.",
-                    speak: "Tu prends du fromage? Oui, j’en prends.",
-                    translation: "(Nimmst du Käse? → Ja, ich nehme davon.)"
-                }
+                category: "→ Nomen mit Teilungsartikel (de la, du, des...)",
+                values: [
+                    "Tu prends <strong>du fromage</strong>?<br>→ Oui, j’<strong>en</strong> prends.<br><small>(Nimmst du Käse? → Ja, ich nehme davon.)</small>"
+                ]
             },
             {
-                pronoun: "→ direkte Objekte mit unbestimmtem Artikel oder Zahl",
-                replaces: "",
-                example: {
-                    sentence: "Tu as <strong>une mobylette</strong>?<br>→ Oui, j’<strong>en</strong> ai une.",
-                    speak: "Tu as une mobylette? Oui, j’en ai une.",
-                    translation: "(Hast du ein Moped? → Ja, ich habe eins davon. Hinweis: un/une als Zahl bleibt erhalten!)"
-                }
+                category: "→ direkte Objekte mit unbestimmtem Artikel oder Zahl",
+                values: [
+                    "Tu as <strong>une mobylette</strong>?<br>→ Oui, j’<strong>en</strong> ai une.<br><small>(Hast du ein Moped? → Ja, ich habe eins davon. Hinweis: un/une als Zahl bleibt erhalten!)</small>"
+                ]
             },
             {
-                pronoun: "→ indirekte Objekte, die durch 'de' mit dem Verb verbunden sind (z.B. rêver de qc, parler de qc)",
-                replaces: "",
-                example: {
-                    sentence: "Yva rêve <strong>des vacances</strong>?<br>→ Oui, elle <strong>en</strong> rêve tout le temps.",
-                    speak: "Yva rêve des vacances? Oui, elle en rêve tout le temps.",
-                    translation: "(Träumt Yva von den Ferien? → Ja, sie träumt die ganze Zeit davon.)"
-                }
+                category: "→ indirekte Objekte, die durch 'de' mit dem Verb verbunden sind (z.B. rêver de qc, parler de qc)",
+                values: [
+                    "Yva rêve <strong>des vacances</strong>?<br>→ Oui, elle <strong>en</strong> rêve tout le temps.<br><small>(Träumt Yva von den Ferien? → Ja, sie träumt die ganze Zeit davon.)</small>"
+                ]
             }
         ]
     },
     positioningRules: newPositioningRules,
-    comparisonTable: pronounOrderChart
+    orderChart: pronounOrderChartData
   },
   'obj-6': {
     title: "Das Pronomen 'y'",
     intro: "Das Pronomen 'y' ersetzt hauptsächlich Ortsangaben oder Dinge/Ideen, die mit 'à' eingeleitet werden (z.B. penser à qc).",
      positioningRules: newPositioningRules,
-     comparisonTable: pronounOrderChart
+     orderChart: pronounOrderChartData
   },
    'obj-7': {
     title: "Die Pronomen 'y' und 'en'",
     intro: "Wenn 'y' und 'en' zusammen in einem Satz vorkommen, gilt immer die Reihenfolge: y vor en.",
      positioningRules: newPositioningRules,
-     comparisonTable: pronounOrderChart
+     orderChart: pronounOrderChartData
   },
    'obj-8': {
     title: 'Alle Objektpronomen: Übersicht',
     intro: 'Hier werden alle Regeln zur Satzstellung und zur Reihenfolge der Pronomen untereinander kombiniert.',
      positioningRules: newPositioningRules,
-     comparisonTable: pronounOrderChart
+     orderChart: pronounOrderChartData
   }
 };
