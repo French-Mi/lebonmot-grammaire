@@ -4,9 +4,8 @@ import { useRouter } from 'vue-router';
 import { useVerbTrainerStore, type MistakeItem } from '@/stores/verbTrainerStore';
 import { useProgressStore } from '@/stores/progressStore';
 import { useAppStore } from '@/stores/appStore';
-
 import { allVerbData } from '@/data/verbs';
-import { getPronounsForTense } from '@/lib/verb-helper';
+import { getPronounsForTense, getConjugationsForQuiz, getTenseDisplayName } from '@/lib/verb-helper';
 import type { Verb, ExampleSentence } from '@/types/verb-types';
 
 export type FeedbackResult = {
@@ -54,16 +53,17 @@ export function useVerbExerciseEngine() {
           verbKey: mistake.verbKey,
           tense: mistake.tense,
           pronounIndex: mistake.pronounIndex,
-          sentence: mistake.sentence
+          sentence: mistake.sentence,
+          userInput: mistake.userInput // userInput wird hier nicht benötigt, aber der Vollständigkeit halber
         }));
       } else if (store.selectedMode === 'drag-drop') {
-        const grouped = mistakesToRepeat.reduce((acc, mistake) => {
+        const grouped = mistakesToRepeat.reduce<Record<string, TrainingChallenge>>((acc, mistake) => {
           const key = `${mistake.verbKey}|${mistake.tense}`;
           if (!acc[key]) {
             acc[key] = { verbKey: mistake.verbKey, tense: mistake.tense };
           }
           return acc;
-        }, {} as { [key: string]: TrainingChallenge });
+        }, {});
         queue = Object.values(grouped);
       }
     } else {
@@ -86,7 +86,6 @@ export function useVerbExerciseEngine() {
           const verb = allVerbData[verbKey];
           if (verb) {
             store.selectedTenses.forEach(tense => {
-              // KORREKTUR: Verwendet die korrekte Funktion, um die passende Pronomen-Liste zu erhalten (kann 6 oder 13 Pronomen zurückgeben).
               const pronouns = getPronounsForTense(verb, tense);
               for (let i = 0; i < pronouns.length; i++) {
                 queue.push({ verbKey, tense, pronounIndex: i });
@@ -121,6 +120,7 @@ export function useVerbExerciseEngine() {
             const mistake: MistakeItem = {
                 verbKey: currentChallenge.value.verbKey,
                 tense: currentChallenge.value.tense,
+                userInput: result.userInput, // Die Nutzereingabe wird hier gespeichert
             };
             if(currentChallenge.value.sentence) {
                 mistake.sentence = currentChallenge.value.sentence;
@@ -162,10 +162,80 @@ export function useVerbExerciseEngine() {
           });
       }
 
+      // Die Fehler aus der Runde werden in den Store übernommen
       store.clearMistakes();
       currentRoundMistakes.value.forEach(mistake => store.addMistake(mistake));
       levelFinished.value = true;
     }
+  };
+
+  const generateVerbPdfData = (): { head: string[][], body: string[][] } => {
+    const isTranslate = store.selectedMode === 'translate';
+    const head = isTranslate
+      ? [['Frage (Deutsch)', 'Antwort (Französisch)']]
+      : [['Verb', 'Zeitform', 'Pronomen', 'Konjugation']];
+
+    const bodyMap = new Map<string, string[]>();
+
+    trainingQueue.value.forEach(challenge => {
+      const verb = allVerbData[challenge.verbKey];
+      if (!verb) return;
+
+      if (isTranslate && challenge.sentence) {
+        const key = challenge.sentence.de;
+        if (!bodyMap.has(key)) {
+          bodyMap.set(key, [
+            challenge.sentence.de,
+            Array.isArray(challenge.sentence.fr) ? challenge.sentence.fr.join(' / ') : (challenge.sentence.fr || '')
+          ]);
+        }
+      } else if (!isTranslate) {
+          const pronouns = getPronounsForTense(verb, challenge.tense);
+          const conjugations = getConjugationsForQuiz(verb, challenge.tense);
+          pronouns.forEach((p, i) => {
+              const key = `${verb.infinitive}-${challenge.tense}-${p}`;
+              if (!bodyMap.has(key)) {
+                  bodyMap.set(key, [
+                      verb.infinitive || '',
+                      getTenseDisplayName(challenge.tense) || '',
+                      p || '',
+                      conjugations[i] || ''
+                  ]);
+              }
+          });
+      }
+    });
+
+    return { head, body: Array.from(bodyMap.values()) };
+  };
+
+  const generateMistakesPdfData = (): { head: string[][], body: string[][] } | null => {
+    if (store.mistakes.length === 0) {
+      return null;
+    }
+
+    const head = store.selectedMode === 'translate'
+      ? [['Frage (Deutsch)', 'Deine Antwort', 'Korrekte Antwort']]
+      : [['Frage', 'Deine Antwort', 'Korrekte Antwort']];
+
+    const body = store.mistakes.map(mistake => {
+      const verb = allVerbData[mistake.verbKey];
+      if (mistake.sentence) {
+        return [
+          mistake.sentence.de,
+          mistake.userInput,
+          Array.isArray(mistake.sentence.fr) ? mistake.sentence.fr.join(' / ') : (mistake.sentence.fr || '')
+        ];
+      } else if (mistake.pronounIndex !== undefined) {
+        const pronoun = getPronounsForTense(verb, mistake.tense)[mistake.pronounIndex];
+        const correctAnswer = getConjugationsForQuiz(verb, mistake.tense)[mistake.pronounIndex] || '';
+        const question = `${verb.infinitive} (${getTenseDisplayName(mistake.tense)}) - ${pronoun}`;
+        return [question, mistake.userInput, correctAnswer];
+      }
+      return [];
+    });
+
+    return { head, body };
   };
 
   const repeatMistakes = () => createTrainingQueue(true);
@@ -192,5 +262,7 @@ export function useVerbExerciseEngine() {
     repeatAll,
     backToConfig,
     backToHome,
+    generateVerbPdfData,
+    generateMistakesPdfData // Die neue Funktion wird exportiert
   };
 }

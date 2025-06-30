@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
 import draggable from 'vuedraggable';
-import type { SentenceOrderExercise } from '@/data/pronouns';
+import type { SentenceOrderExercise } from '@/data/pronouns/types';
 import VWord from '@/components/ui/VWord.vue';
 
 const props = defineProps<{
@@ -33,25 +33,26 @@ const initializeUserOrder = () => {
 };
 
 onMounted(initializeUserOrder);
-watch(() => props.exerciseData, initializeUserOrder, { immediate: true });
+watch(() => currentQuestionIndex.value, initializeUserOrder);
 
-const isAnswerCorrect = computed(() => {
-  if (!currentQuestion.value) return false;
-  const correctSentence = currentQuestion.value.correctOrder.map(id => currentQuestion.value.parts[id]).join('');
-  const userSentence = userOrder.value.join('');
-  return userSentence === correctSentence;
-});
+const normalizeString = (str: string) => str.replace(/\s+/g, '').trim();
 
 const getCorrectSentence = () => {
     if (!currentQuestion.value) return '';
-    return currentQuestion.value.correctOrder.map(id => currentQuestion.value.parts[id]).join('');
+    return currentQuestion.value.correctOrder.map(id => currentQuestion.value.parts[id]).join(' ');
 }
+
+const isAnswerCorrect = computed(() => {
+  if (!currentQuestion.value) return false;
+  const userSentence = userOrder.value.join(' ');
+  return normalizeString(userSentence) === normalizeString(getCorrectSentence());
+});
 
 const checkAnswer = () => {
     if (answerChecked.value) return;
     emit('feedback', {
       isCorrect: isAnswerCorrect.value,
-      correctAnswer: getCorrectSentence().replace(/\s+/g, ' ').trim(), // Leerzeichen für die Anzeige normalisieren
+      correctAnswer: getCorrectSentence(),
       explanation: currentQuestion.value.explanation,
       questionIndex: currentQuestionIndex.value,
       translation_de: currentQuestion.value.translation_de
@@ -63,7 +64,6 @@ const nextQuestion = () => {
     if (currentQuestionIndex.value < props.exerciseData.questions.length - 1) {
         currentQuestionIndex.value++;
         answerChecked.value = false;
-        initializeUserOrder();
     } else {
         emit('completed');
     }
@@ -73,13 +73,12 @@ defineExpose({ nextQuestion });
 
 <template>
   <div class="quiz-container card">
-    <p class="quiz-instructions">{{ exerciseData.instructions }}</p>
     <div class="progress-bar">
       <div class="progress-bar-fill" :style="{ width: `${(currentQuestionIndex + 1) / exerciseData.questions.length * 100}%` }"></div>
     </div>
     <div v-if="currentQuestion" class="question-slide">
       <div class="sentence-parts-container">
-        <draggable v-model="userOrder" class="draggable-container" item-key="part" :animation="150" ghost-class="ghost" :disabled="answerChecked">
+        <draggable v-model="userOrder" class="draggable-container" :item-key="(element: string, index: number) => `${element}-${index}`" :animation="150" ghost-class="ghost" :disabled="answerChecked">
           <template #item="{ element: part }">
             <div class="sentence-part" :class="{ 'correct': answerChecked && isAnswerCorrect, 'incorrect': answerChecked && !isAnswerCorrect }">
               <template v-for="(word, index) in getWords(part)" :key="index">
@@ -99,7 +98,6 @@ defineExpose({ nextQuestion });
 
 <style scoped>
 .quiz-container { padding: 2rem; }
-.quiz-instructions { font-size: 1.1rem; color: var(--muted-text); margin-bottom: 1rem; text-align: center; }
 .progress-bar { width: 100%; background-color: #e9ecef; border-radius: 8px; height: 10px; margin-bottom: 2rem; overflow: hidden; }
 .progress-bar-fill { height: 100%; background-color: var(--primary-blue); transition: width 0.3s ease; }
 .question-slide { display: flex; flex-direction: column; align-items: center; }

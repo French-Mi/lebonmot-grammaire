@@ -2,13 +2,13 @@
 import { useRoute, RouterLink } from 'vue-router';
 import { computed, ref } from 'vue';
 import { pronounData } from '../data/pronouns';
-import type { PronounCategory } from '../data/pronouns';
+// KORREKTUR: Importiert Typ aus der neuen Typ-Datei
+import type { PronounCategory } from '../data/pronouns/types';
 import LevelCard from '../components/layout/LevelCard.vue';
 
 const route = useRoute();
 const topicId = computed(() => route.params.topicId as string);
 
-// NEU: Zustand für die ausgewählte Kategorie
 const selectedCategoryId = ref<string | null>(null);
 
 const currentTopicData = computed(() => {
@@ -26,13 +26,10 @@ const currentTopicTitle = computed(() => {
   return currentTopicData.value ? currentTopicData.value.title : "Thema";
 });
 
-// NEU: Funktion zum Auswählen einer Kategorie
 const selectCategory = (categoryId: string) => {
-    // Ermöglicht das An- und Abwählen der Kategorie
     selectedCategoryId.value = selectedCategoryId.value === categoryId ? null : categoryId;
 }
 
-// NEU: Computed Property, die die Daten der ausgewählten Kategorie zurückgibt
 const selectedCategoryData = computed((): PronounCategory | undefined => {
     if (!selectedCategoryId.value) return undefined;
     return categories.value.find(c => c.id === selectedCategoryId.value);
@@ -99,8 +96,6 @@ const selectedCategoryData = computed((): PronounCategory | undefined => {
   margin-bottom: 2rem;
   color: var(--header-blue);
 }
-
-/* NEUE STILE für die Kategorie-Buttons */
 .category-selector {
     display: flex;
     gap: 1rem;
@@ -129,7 +124,6 @@ const selectedCategoryData = computed((): PronounCategory | undefined => {
     transform: translateY(-2px);
     box-shadow: 0 4px 10px rgba(0,0,0,0.1);
 }
-
 .levels-container-wrapper {
     margin-top: 1rem;
 }

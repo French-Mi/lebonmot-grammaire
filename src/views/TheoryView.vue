@@ -3,12 +3,15 @@ import { useRoute, RouterLink } from 'vue-router';
 import { computed } from 'vue';
 import SpeakerIcon from '@/components/ui/SpeakerIcon.vue';
 import { theoryData } from '@/data/theory-content';
+import type { TheoryContent } from '@/data/theory-content';
 
 const route = useRoute();
 const topicId = computed(() => route.params.topicId as string);
 const levelId = computed(() => route.params.levelId as string);
 
-const content = computed(() => theoryData[levelId.value] || null);
+const content = computed((): TheoryContent | null => {
+    return theoryData[levelId.value] || null;
+});
 </script>
 
 <template>
@@ -37,17 +40,16 @@ const content = computed(() => theoryData[levelId.value] || null);
                         <td v-for="(exampleSet, index) in content.comparisonTable.examples" :key="index">
                             <div v-for="example in exampleSet" :key="example.sentence" class="example-block">
                                 <p class="example-sentence">
-                                    {{ example.sentence }}
+                                    <span v-html="example.sentence"></span>
                                     <SpeakerIcon :text-to-speak="example.speak" />
                                 </p>
-                                <p class="translation">{{ example.translation }}</p>
+                                <p class="translation" v-html="example.translation"></p>
                             </div>
                         </td>
                     </tr>
                 </tbody>
             </table>
         </div>
-
         <h2 v-if="content.summary" class="section-title">MERKE</h2>
         <div v-if="content.summary" class="summary-box">
             <ul>
@@ -57,6 +59,54 @@ const content = computed(() => theoryData[levelId.value] || null);
                 </li>
             </ul>
         </div>
+      </div>
+
+      <div v-if="content.pronounTable" class="unified-view">
+        <div class="comparison-table-container">
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th v-for="header in content.pronounTable.headers" :key="header" v-html="header"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="row in content.pronounTable.rows" :key="row.pronoun">
+                        <td v-html="row.pronoun"></td>
+                        <td v-html="row.replaces"></td>
+                        <td>
+                            <p class="example-sentence">
+                                <span v-html="row.example.sentence"></span>
+                                <SpeakerIcon :text-to-speak="row.example.speak" />
+                            </p>
+                            <p class="translation" v-if="row.example.translation" v-html="row.example.translation"></p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <p v-if="content.footnote" class="footnote" v-html="content.footnote"></p>
+      </div>
+
+      <div v-if="content.dualTable" class="dual-table-container">
+        <div v-for="(tableData, key) in content.dualTable" :key="key" class="dual-table-card">
+            <h3 v-html="tableData.title"></h3>
+            <p class="dual-table-rule" v-html="tableData.rule"></p>
+            <table class="forms-table">
+                <tbody>
+                    <tr v-for="form in tableData.forms" :key="form.pronoun">
+                        <td class="pronoun-col" v-html="form.pronoun"></td>
+                        <td v-html="form.meaning"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+      </div>
+
+      <div v-if="content.positioningRules" class="positioning-rules">
+        <h2 class="section-title">{{ content.positioningRules.title }}</h2>
+        <ol class="rules-list">
+            <li v-for="rule in content.positioningRules.rules" :key="rule" v-html="rule"></li>
+        </ol>
       </div>
 
       <div class="start-exercise-container">
@@ -83,13 +133,13 @@ h1 { font-size: 2.5rem; color: var(--header-blue); margin-bottom: 1rem; }
 .comparison-table { width: 100%; border-collapse: collapse; border: 2px solid #dee2e6; }
 .comparison-table th, .comparison-table td { padding: 0.85rem 1rem; border: 1px solid #dee2e6; text-align: left; vertical-align: top; }
 .comparison-table thead { background-color: #f8f9fa; font-size: 1.1rem; }
-.comparison-table th:first-child, .comparison-table td:first-child { font-weight: 700; background-color: #f8f9fa; width: 20%; }
-.comparison-table td:not(:first-child) { font-size: 0.95rem; }
-.comparison-table code, .comparison-table strong { background-color: #e9ecef; padding: 0.2rem 0.4rem; border-radius: 4px; }
+.comparison-table th:first-child, .comparison-table td:first-child { font-weight: 700; background-color: #f8f9fa; width: auto; }
+.comparison-table td:not(:first-child) { font-size: 1rem; }
+.comparison-table :deep(code), .comparison-table :deep(strong) { background-color: transparent; padding: 0; font-weight: 700; }
 .example-block { margin-bottom: 1rem; }
 .example-block:last-child { margin-bottom: 0; }
 .example-sentence { display: flex; align-items: center; gap: 0.5rem; }
-.translation { font-size: 0.9rem; color: var(--muted-text); padding-top: 0.2rem; }
+.translation { font-size: 0.9rem; color: var(--muted-text); padding-top: 0.2rem; font-style: italic; }
 .section-title { margin-top: 3rem; margin-bottom: 1rem; font-size: 1.5rem; color: var(--dark-text); }
 .summary-box { border: 2px solid var(--error-color); border-radius: 8px; padding: 1.5rem; background-color: #fff5f5; }
 .summary-box ul { list-style: none; padding-left: 0; margin: 0; }
@@ -97,6 +147,62 @@ h1 { font-size: 2.5rem; color: var(--header-blue); margin-bottom: 1rem; }
 .summary-box li::before { content: '•'; color: var(--error-color); font-weight: bold; line-height: 1.5; }
 .summary-box li:last-child { margin-bottom: 0; }
 .summary-box strong { font-weight: 700; flex-basis: 80px; flex-shrink: 0; text-align: right; }
+.footnote { margin-top: 1rem; font-size: 0.9rem; color: var(--muted-text); }
+.footnote :deep(strong) { font-weight: 700; background-color: transparent; padding: 0; }
+.positioning-rules {
+    margin-top: 2.5rem;
+    padding: 1.5rem;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+}
+.rules-list {
+    padding-left: 1.5rem;
+    margin: 0;
+}
+.rules-list li {
+    margin-bottom: 1rem;
+    line-height: 1.6;
+}
+.rules-list li:last-child {
+    margin-bottom: 0;
+}
+.dual-table-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-top: 2rem;
+}
+.dual-table-card {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1rem;
+}
+.dual-table-card h3 {
+    text-align: center;
+    font-size: 1.3rem;
+    margin-bottom: 0.5rem;
+    font-weight: 700;
+}
+.dual-table-card .dual-table-rule {
+    text-align: center;
+    font-size: 0.95rem;
+    color: var(--muted-text);
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+.forms-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.forms-table td {
+    padding: 0.6rem;
+    border: 1px solid #e9ecef;
+}
+.forms-table .pronoun-col {
+    font-weight: 700;
+    width: 45%;
+}
 .card-placeholder { padding: 3rem; text-align: center; border-radius: 8px; background-color: #f8f9fa; }
 .card-placeholder h2 { color: var(--header-blue); }
 .card-placeholder p { color: var(--muted-text); }

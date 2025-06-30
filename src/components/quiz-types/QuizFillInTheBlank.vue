@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
-import type { FillInTheBlankExercise } from '@/data/pronouns';
+import { ref, computed, nextTick, onMounted } from 'vue';
+import type { FillInTheBlankExercise } from '@/data/pronouns/types';
 
 const props = defineProps<{
   exerciseData: FillInTheBlankExercise
@@ -13,12 +13,22 @@ const emit = defineEmits<{
 
 const currentQuestionIndex = ref(0);
 const userAnswer = ref('');
+const inputRef = ref<HTMLInputElement | null>(null);
 
 const currentQuestion = computed(() => {
   return props.exerciseData.questions[currentQuestionIndex.value];
 });
 
+onMounted(() => {
+  inputRef.value?.focus();
+});
+
 const checkAnswer = () => {
+    // KORREKTUR: Verhindert das Absenden einer leeren Antwort.
+    if (userAnswer.value.trim() === '') {
+      return;
+    }
+
     const isCorrect = userAnswer.value.trim().toLowerCase() === currentQuestion.value.text_blank.toLowerCase();
     emit('feedback', {
         isCorrect,
@@ -38,6 +48,9 @@ const nextQuestion = () => {
   if (currentQuestionIndex.value < props.exerciseData.questions.length - 1) {
     currentQuestionIndex.value++;
     userAnswer.value = '';
+    nextTick(() => {
+      inputRef.value?.focus();
+    });
   } else {
     emit('completed');
   }
@@ -51,21 +64,23 @@ defineExpose({
 
 <template>
   <div class="fill-in-the-blank-quiz">
-    <p class="question-text">
-        {{ currentQuestion.text_start }}
-        <span class="blank-space">___</span>
-        {{ currentQuestion.text_end }}
-    </p>
+    <div class="progress-bar">
+      <div class="progress-bar-fill" :style="{ width: `${(currentQuestionIndex + 1) / exerciseData.questions.length * 100}%` }"></div>
+    </div>
 
-    <div class="answer-section">
+    <p class="question-text">
+      <span>{{ currentQuestion.text_start }}</span>
       <input
         v-model="userAnswer"
-        @keyup.enter="checkAnswer"
+        @keyup.enter.stop="checkAnswer"
         type="text"
-        class="answer-input"
-        placeholder="Antwort eingeben..."
+        class="answer-input-inline"
+        :placeholder="'...'"
+        ref="inputRef"
+        :style="{ width: Math.max(100, currentQuestion.text_blank.length * 12) + 'px' }"
       />
-    </div>
+      <span>{{ currentQuestion.text_end }}</span>
+    </p>
 
     <div v-if="exerciseData.answerOptions" class="answer-options">
         <button
@@ -82,39 +97,53 @@ defineExpose({
 </template>
 
 <style scoped>
+.progress-bar {
+  width: 100%;
+  background-color: #e9ecef;
+  border-radius: 8px;
+  height: 10px;
+  margin-bottom: 3rem;
+  overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%;
+  background-color: var(--primary-blue);
+  transition: width 0.3s ease;
+}
 .question-text {
-  font-size: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.8rem;
   text-align: center;
   margin-bottom: 2rem;
   line-height: 1.6;
 }
-.blank-space {
-  font-weight: 700;
-  color: var(--primary-blue);
-  border-bottom: 2px solid var(--primary-blue);
-}
-.answer-section {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 1.5rem;
-}
-.answer-input {
-  width: 100%;
-  max-width: 400px;
-  padding: 0.8rem;
-  font-size: 1.2rem;
-  text-align: center;
-  border: 2px solid var(--border-color);
+.answer-input-inline {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  color: var(--dark-text);
+  background-color: #eef7ff;
+  border: 1px solid #a9cfff;
   border-radius: 8px;
+  padding: 0.2rem 0.5rem;
+  text-align: center;
+  transition: all 0.2s ease-in-out;
 }
-
-/* NEUE STILE FÜR DIE BUTTONS */
+.answer-input-inline:focus {
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
+  outline: none;
+}
 .answer-options {
     display: flex;
     justify-content: center;
     gap: 1rem;
     flex-wrap: wrap;
-    margin-top: 2rem;
+    margin-top: 3rem;
 }
 .btn-option {
     padding: 0.75rem 1.5rem;

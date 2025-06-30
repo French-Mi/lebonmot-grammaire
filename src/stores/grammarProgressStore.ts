@@ -1,9 +1,8 @@
 // src/stores/grammarProgressStore.ts
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { defineStore } from 'pinia'
-import type { Exercise } from '@/data/pronouns';
+import type { Exercise } from '@/data/pronouns/types';
 
-// KORREKTUR: Speichert jetzt den Index der spezifischen, falschen Frage
 export type MistakeItem = {
   topicId: string;
   levelId: string;
@@ -13,18 +12,43 @@ export type MistakeItem = {
 
 export const useGrammarProgressStore = defineStore('grammarProgress', () => {
   const mistakes = ref<MistakeItem[]>([]);
+  // NEU: Speichert die IDs der perfekt abgeschlossenen Übungen
+  const perfectedExercises = ref<string[]>([]);
+
+  // Lade den Zustand aus dem LocalStorage beim Initialisieren
+  const savedState = localStorage.getItem('leBonMotGrammarProgress');
+  if (savedState) {
+    const state = JSON.parse(savedState);
+    mistakes.value = state.mistakes || [];
+    perfectedExercises.value = state.perfectedExercises || [];
+  }
+
+  // Speichere den Zustand bei jeder Änderung
+  watch([mistakes, perfectedExercises], (newState) => {
+    const state = {
+      mistakes: newState[0],
+      perfectedExercises: newState[1]
+    };
+    localStorage.setItem('leBonMotGrammarProgress', JSON.stringify(state));
+  }, { deep: true });
 
   function addMistake(item: MistakeItem) {
-    // Verhindert Duplikate
     const exists = mistakes.value.some(m =>
         m.topicId === item.topicId &&
         m.levelId === item.levelId &&
-        m.exercise.instructions === item.exercise.instructions && // Vergleicht auf Basis der Anweisung
+        m.exercise.instructions === item.exercise.instructions &&
         m.questionIndex === item.questionIndex
     );
     if (!exists) {
         mistakes.value.push(item);
     }
+  }
+
+  // NEU: Fügt eine perfekt absolvierte Übung hinzu
+  function addPerfectedExercise(exerciseId: string) {
+      if (!perfectedExercises.value.includes(exerciseId)) {
+          perfectedExercises.value.push(exerciseId);
+      }
   }
 
   function getMistakesForLevel(topicId: string, levelId: string): MistakeItem[] {
@@ -40,5 +64,5 @@ export const useGrammarProgressStore = defineStore('grammarProgress', () => {
       mistakes.value = [];
   }
 
-  return { mistakes, addMistake, getMistakesForLevel, clearMistakesForLevel, clearAllMistakes }
+  return { mistakes, perfectedExercises, addMistake, addPerfectedExercise, getMistakesForLevel, clearMistakesForLevel, clearAllMistakes }
 })

@@ -1,4 +1,3 @@
-// src/stores/progressStore.ts
 import { defineStore } from 'pinia';
 import { ref, computed, watch } from 'vue';
 import { achievements } from '@/data/achievements';
@@ -16,6 +15,8 @@ export const useProgressStore = defineStore('progress', () => {
   const activityLog = ref<ActivityLog>({});
   const unlockedAchievements = ref<string[]>([]);
   const topicProgress = ref<{ [key: string]: { xp: number } }>({});
+  // NEUE Eigenschaft für perfekte Level
+  const perfectlyCompletedLevels = ref<string[]>([]);
 
   const xpForNextLevel = computed(() => level.value * 100);
   const progressToNextLevel = computed(() => xpForNextLevel.value > 0 ? (xp.value / xpForNextLevel.value) * 100 : 0);
@@ -61,18 +62,18 @@ export const useProgressStore = defineStore('progress', () => {
     lastSessionDate.value = todayKey;
   }
 
-  function unlockAchievement(id: string) {
-    if (!unlockedAchievements.value.includes(id)) {
-      unlockedAchievements.value.push(id);
+  // NEUE Funktion, um ein perfektes Level hinzuzufügen
+  function addPerfectlyCompletedLevel(levelId: string) {
+    if (!perfectlyCompletedLevels.value.includes(levelId)) {
+      perfectlyCompletedLevels.value.push(levelId);
     }
   }
 
-  // KORREKTUR: Die Signatur der Funktion akzeptiert jetzt 'topicId'
   function checkAndUnlockAchievements(stats: { topicId: string, mistakes: number, isPerfect: boolean }) {
       achievements.forEach((achievement: Achievement) => {
         if (!unlockedAchievements.value.includes(achievement.id)) {
           if (achievement.condition(stats, { level: level.value, streak: streak.value, topics: topicProgress.value })) {
-            unlockAchievement(achievement.id);
+            unlockedAchievements.value.push(achievement.id);
           }
         }
       });
@@ -89,11 +90,13 @@ export const useProgressStore = defineStore('progress', () => {
       activityLog.value = state.activityLog || {};
       unlockedAchievements.value = state.unlockedAchievements || [];
       topicProgress.value = state.topicProgress || {};
+      // NEU: Laden aus dem Speicher
+      perfectlyCompletedLevels.value = state.perfectlyCompletedLevels || [];
     }
     logSession();
   }
 
-  watch([xp, level, streak, lastSessionDate, activityLog, unlockedAchievements, topicProgress], (newStateValues) => {
+  watch([xp, level, streak, lastSessionDate, activityLog, unlockedAchievements, topicProgress, perfectlyCompletedLevels], (newStateValues) => {
     const state = {
       xp: newStateValues[0],
       level: newStateValues[1],
@@ -101,7 +104,9 @@ export const useProgressStore = defineStore('progress', () => {
       lastSessionDate: newStateValues[3],
       activityLog: newStateValues[4],
       unlockedAchievements: newStateValues[5],
-      topicProgress: newStateValues[6]
+      topicProgress: newStateValues[6],
+      // NEU: Speichern im Speicher
+      perfectlyCompletedLevels: newStateValues[7]
     };
     localStorage.setItem('leBonMotProgress', JSON.stringify(state));
   }, { deep: true });
@@ -109,8 +114,8 @@ export const useProgressStore = defineStore('progress', () => {
   loadState();
 
   return {
-    xp, level, streak, activityLog, unlockedAchievements, topicProgress,
+    xp, level, streak, activityLog, unlockedAchievements, topicProgress, perfectlyCompletedLevels,
     xpForNextLevel, progressToNextLevel,
-    addXp, logSession, checkAndUnlockAchievements
+    addXp, logSession, checkAndUnlockAchievements, addPerfectlyCompletedLevel
   };
 });

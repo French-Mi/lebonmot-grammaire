@@ -3,14 +3,16 @@ import { useRoute, RouterLink } from 'vue-router';
 import { computed } from 'vue';
 import { pronounData } from '@/data/pronouns';
 import { useGrammarProgressStore } from '@/stores/grammarProgressStore';
-import type { TopicLevel, Exercise } from '@/data/pronouns';
+// KORREKTUR: Importiert Typen aus der neuen Typ-Datei
+import type { Level, Exercise } from '@/data/pronouns/types';
 
 const route = useRoute();
 const grammarStore = useGrammarProgressStore();
 const topicId = computed(() => route.params.topicId as string);
 const levelId = computed(() => route.params.levelId as string);
 
-const levelData = computed<TopicLevel | undefined>(() => {
+// KORREKTUR: Typ-Name angepasst
+const levelData = computed<Level | undefined>(() => {
   for (const category of pronounData.categories) {
     const foundLevel = category.levels.find(level => level.uniqueId === levelId.value);
     if (foundLevel) return foundLevel;
@@ -31,6 +33,7 @@ const getExerciseIcon = (type: string) => {
         case 'fillInTheBlank': return '📝';
         case 'sentenceOrder': return '🔄';
         case 'matchPairs': return '🧩';
+        case 'clickTheWord': return '👆';
         default: return '💪';
     }
 }

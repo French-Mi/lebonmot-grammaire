@@ -99,14 +99,12 @@ const unlockedAchievements = computed(() => {
 }
 .topic-card.disabled:hover {
   transform: none;
-  /* KORREKTUR: Ungültige Variable durch gültigen Wert ersetzt */
   box-shadow: 0 4px 6px rgba(0,0,0,0.05);
 }
 .topic-card.disabled h2 {
   color: #6c757d;
 }
 
-/* --- NEUE STILE FÜR DIE FORTSCHRITTS-ZUSAMMENFASSUNG --- */
 .progress-summary-card {
   margin-bottom: 3rem;
   padding: 1.5rem;
@@ -193,7 +191,6 @@ const unlockedAchievements = computed(() => {
   font-size: 0.9rem;
 }
 
-/* Anpassungen für kleinere Bildschirme */
 @media (max-width: 768px) {
   .progress-content {
     grid-template-columns: 1fr;

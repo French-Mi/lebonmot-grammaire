@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import type { ClickTheWordExercise } from '@/data/pronouns';
+import type { ClickTheWordExercise } from '@/data/pronouns/types';
 
 const props = defineProps<{
   exerciseData: ClickTheWordExercise
@@ -12,7 +12,6 @@ const emit = defineEmits<{
 }>()
 
 const currentQuestionIndex = ref(0);
-// HÄLT JETZT MEHRERE WÖRTER
 const selectedWords = ref<string[]>([]);
 
 const currentQuestion = computed(() => {
@@ -23,28 +22,22 @@ const sentenceParts = computed(() => {
     return currentQuestion.value.sentence.split(' ');
 });
 
-// LOGIK FÜR MEHRFACHAUSWAHL
 const selectWord = (word: string) => {
     const cleanedWord = word.replace(/[.,]/g, '');
     const index = selectedWords.value.indexOf(cleanedWord);
 
     if (index > -1) {
-        // Wort ist bereits ausgewählt -> abwählen
         selectedWords.value.splice(index, 1);
     } else {
-        // Wort ist nicht ausgewählt -> anwählen
         selectedWords.value.push(cleanedWord);
     }
 }
 
-// LOGIK ZUM VERGLEICHEN VON WORT-LISTEN
 const checkAnswer = () => {
     if (selectedWords.value.length === 0) return;
 
-    // Sortiere beide Arrays, um die Reihenfolge der Klicks zu ignorieren
     const correctAnswerSorted = [...currentQuestion.value.answer].sort().join(' ');
     const userAnswerSorted = [...selectedWords.value].sort().join(' ');
-
     const isCorrect = userAnswerSorted.toLowerCase() === correctAnswerSorted.toLowerCase();
 
     emit('feedback', {
@@ -59,7 +52,7 @@ const checkAnswer = () => {
 const nextQuestion = () => {
   if (currentQuestionIndex.value < props.exerciseData.questions.length - 1) {
     currentQuestionIndex.value++;
-    selectedWords.value = []; // Auswahl für nächste Frage zurücksetzen
+    selectedWords.value = [];
   } else {
     emit('completed');
   }
@@ -72,6 +65,9 @@ defineExpose({
 
 <template>
   <div class="click-the-word-quiz">
+     <div class="progress-bar">
+      <div class="progress-bar-fill" :style="{ width: `${(currentQuestionIndex + 1) / exerciseData.questions.length * 100}%` }"></div>
+    </div>
     <h3 class="instruction-prompt">{{ currentQuestion.prompt }}</h3>
 
     <div class="sentence-container">
@@ -94,6 +90,8 @@ defineExpose({
 </template>
 
 <style scoped>
+.progress-bar { width: 100%; background-color: #e9ecef; border-radius: 8px; height: 10px; margin-bottom: 2rem; overflow: hidden; }
+.progress-bar-fill { height: 100%; background-color: var(--primary-blue); transition: width 0.3s ease; }
 .instruction-prompt {
     text-align: center;
     font-size: 1.2rem;

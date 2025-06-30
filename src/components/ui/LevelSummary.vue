@@ -1,19 +1,21 @@
 <script setup lang="ts">
 import CelebrationAnimation from '@/components/dashboard/CelebrationAnimation.vue';
 
-// KORREKTUR: Props sind jetzt optional, um Fehler zu vermeiden, wenn sie nicht übergeben werden.
 defineProps<{
   title?: string,
   mistakeCount: number,
   showMistakeRepeat?: boolean,
-  buttonTextRepeat?: string
+  buttonTextRepeat?: string,
+  // Neue, generische Prop, um den Button bei Bedarf anzuzeigen
+  showDownload?: boolean
 }>()
 
 const emit = defineEmits<{
   (e: 'repeat-all'): void,
   (e: 'repeat-mistakes'): void,
   (e: 'back-to-topic'): void,
-  (e: 'back-to-home'): void
+  (e: 'back-to-home'): void,
+  (e: 'download-pdf'): void // Spezifisches Event für PDF-Download
 }>()
 </script>
 
@@ -38,6 +40,9 @@ const emit = defineEmits<{
       </button>
       <button @click="emit('repeat-all')" class="btn btn-secondary">
         {{ buttonTextRepeat || 'Level wiederholen' }}
+      </button>
+       <button v-if="showDownload" @click="emit('download-pdf')" class="btn btn-info">
+        Als PDF exportieren
       </button>
       <button @click="emit('back-to-topic')" class="btn btn-link">
         Zurück zur Level-Übersicht
@@ -92,6 +97,11 @@ const emit = defineEmits<{
     background-color: transparent;
     border: 2px solid var(--primary-blue);
     color: var(--primary-blue);
+}
+.btn-info {
+    background-color: #dc3545; /* PDF-Rot */
+    color: white;
+    border: none;
 }
 .btn-link {
   background: none;

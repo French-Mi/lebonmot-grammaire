@@ -1,21 +1,24 @@
 <script setup lang="ts">
 import { useRoute, useRouter, RouterLink } from 'vue-router';
-import { computed, ref, onMounted, onUnmounted, nextTick, watch } from 'vue';
+import { computed, ref, onMounted, onUnmounted, nextTick } from 'vue';
 import { useGrammarProgressStore } from '../stores/grammarProgressStore';
 import { useProgressStore } from '@/stores/progressStore';
 import { useAppStore } from '@/stores/appStore';
 
-import { pronounData } from '@/data/pronouns';
-import type { Exercise, TopicLevel } from '@/data/pronouns';
+import { pronounData } from '@/data/pronouns/index';
+import type { Exercise, Level, FillInTheBlankQuestion, SentenceOrderQuestion, IdentifyPartQuestion, ClickTheWordQuestion } from '@/data/pronouns/types';
 import { achievements as allAchievements } from '@/data/achievements';
 
 import QuizFillInTheBlank from '@/components/quiz-types/QuizFillInTheBlank.vue';
 import QuizSentenceOrder from '@/components/quiz-types/QuizSentenceOrder.vue';
 import QuizMatchPairs from '@/components/quiz-types/QuizMatchPairs.vue';
 import QuizIdentifyPart from '@/components/quiz-types/QuizIdentifyPart.vue';
-// NEU: Neue Komponente importiert
 import QuizClickTheWord from '@/components/quiz-types/QuizClickTheWord.vue';
 import LevelSummary from '@/components/ui/LevelSummary.vue';
+
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+
 
 type FeedbackPayload = {
     isCorrect: boolean;
@@ -89,7 +92,7 @@ const setupExercises = (mode: 'mistakes' | number) => {
   currentExerciseIndex.value = 0;
 };
 
-const currentLevelData = computed((): TopicLevel | undefined => {
+const currentLevelData = computed((): Level | undefined => {
   const allLevels = pronounData.categories.flatMap(c => c.levels);
   return allLevels.find(l => l.uniqueId === levelId.value);
 });
@@ -181,6 +184,68 @@ const repeatThis = () => {
 };
 
 const backToSelection = () => router.push(`/topic/${topicId.value}/level/${levelId.value}`);
+
+const downloadPdf = () => {
+  const doc = new jsPDF();
+  const level = currentLevelData.value;
+  if (!level) return;
+
+  const head = [['Übung', 'Frage / Satz', 'Korrekte Antwort']];
+  const body: string[][] = [];
+
+  exerciseQueue.value.forEach((exercise: Exercise) => {
+    if ('questions' in exercise && Array.isArray(exercise.questions)) {
+      exercise.questions.forEach(q => {
+        let questionText = '';
+        let correctAnswer = '';
+
+        switch (exercise.type) {
+          case 'fillInTheBlank':
+            const qFill = q as FillInTheBlankQuestion;
+            questionText = `${qFill.text_start} ___ ${qFill.text_end}`;
+            correctAnswer = qFill.text_blank;
+            break;
+          case 'sentenceOrder':
+            const qOrder = q as SentenceOrderQuestion;
+            questionText = qOrder.parts.join(' | ');
+            correctAnswer = qOrder.correctOrder.map(i => qOrder.parts[i]).join(' ');
+            break;
+          case 'identifyPart':
+            const qId = q as IdentifyPartQuestion;
+            questionText = `${qId.sentence} (${qId.prompt})`;
+            correctAnswer = qId.answer;
+            break;
+          case 'clickTheWord':
+            const qClick = q as ClickTheWordQuestion;
+            questionText = `${qClick.sentence} (${qClick.prompt})`;
+            correctAnswer = qClick.answer.join(' ');
+            break;
+        }
+        body.push([exercise.shortTitle, questionText, correctAnswer]);
+      });
+    } else if (exercise.type === 'matchPairs') {
+      exercise.sentenceStarts.forEach((start) => {
+        const clause = exercise.relativeClauses.find(c => c.id === start.id);
+        if (clause) {
+          body.push([exercise.shortTitle, start.text, clause.text]);
+        }
+      });
+    }
+  });
+
+  doc.text(`Le BonMot - ${level.title}`, 14, 15);
+
+  autoTable(doc, {
+    head: head,
+    body: body,
+    startY: 25,
+    styles: { font: 'helvetica', fontSize: 10 },
+    headStyles: { fillColor: [74, 144, 226] },
+  });
+
+  doc.save(`lebonmot-pronomen-${level.uniqueId}.pdf`);
+};
+
 </script>
 
 <template>
@@ -190,9 +255,11 @@ const backToSelection = () => router.push(`/topic/${topicId.value}/level/${level
         :title="summaryTitle"
         :mistake-count="currentRoundMistakes.length"
         :show-mistake-repeat="false"
+        :show-download="true"
         button-text-repeat="Nochmal üben"
         @repeat-all="repeatThis"
         @back-to-topic="backToSelection"
+        @download-pdf="downloadPdf"
     />
     <div v-else>
         <RouterLink :to="`/topic/${topicId}/level/${levelId}`" class="back-link">&larr; Zurück zur Übungsauswahl</RouterLink>

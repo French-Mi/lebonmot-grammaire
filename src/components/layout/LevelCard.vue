@@ -1,18 +1,24 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router';
-import type { TopicLevel } from '../../data/pronouns'
+import { useProgressStore } from '@/stores/progressStore';
+import type { Level } from '../../data/pronouns/types'
 
 defineProps<{
-  levelData: TopicLevel,
+  levelData: Level,
   topicId: string
 }>()
+
+const progressStore = useProgressStore();
 </script>
 
 <template>
-  <div class="level-card">
+  <div class="level-card" :class="{ 'is-completed': progressStore.perfectlyCompletedLevels.includes(levelData.uniqueId) }">
     <div class="level-info">
-      <span class="level-number">Level {{ levelData.level }}</span>
-      <h3 class="level-title">{{ levelData.title }}</h3>
+      <div class="title-wrapper">
+        <span class="level-number">Level {{ levelData.level }}</span>
+        <h3 class="level-title">{{ levelData.title }}</h3>
+        <span v-if="progressStore.perfectlyCompletedLevels.includes(levelData.uniqueId)" class="completed-check">✓</span>
+      </div>
       <p class="level-description">{{ levelData.description }}</p>
     </div>
     <div class="level-actions">
@@ -36,6 +42,7 @@ defineProps<{
   gap: 1.5rem;
   padding: 1.25rem 0;
   border-bottom: 1px solid var(--border-color);
+  transition: border-color 0.3s;
 }
 .level-card:last-child {
   border-bottom: none;
@@ -53,4 +60,20 @@ defineProps<{
 .btn-theory:hover:not(:disabled) { background-color: #146c43; }
 .btn:disabled { background-color: #a3d9b8; cursor: not-allowed; opacity: 0.7; }
 .btn:disabled:hover { transform: none; filter: none; }
+
+/* NEUE STILE für abgeschlossene Level */
+.level-card.is-completed {
+  border-left: 4px solid var(--success-color);
+  padding-left: 1rem;
+}
+.title-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.completed-check {
+  color: var(--success-color);
+  font-weight: bold;
+  font-size: 1.2rem;
+}
 </style>

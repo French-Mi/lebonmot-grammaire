@@ -4,6 +4,8 @@ import VerbTrainerStandard from '@/components/verb-trainer/VerbTrainerStandard.v
 import VerbTrainerDragDrop from '@/components/verb-trainer/VerbTrainerDragDrop.vue';
 import VerbTrainerTranslate from '@/components/verb-trainer/VerbTrainerTranslate.vue';
 import LevelSummary from '@/components/ui/LevelSummary.vue';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const {
   store,
@@ -19,8 +21,39 @@ const {
   repeatAll,
   repeatMistakes,
   backToConfig,
-  backToHome
+  backToHome,
+  generateVerbPdfData,
+  generateMistakesPdfData // Import der neuen Funktion
 } = useVerbExerciseEngine();
+
+const downloadPdf = () => {
+  const doc = new jsPDF();
+  const { head, body } = generateVerbPdfData();
+  const mistakesData = generateMistakesPdfData();
+
+  doc.text('Le BonMot - Verb-Trainer Zusammenfassung', 14, 15);
+  autoTable(doc, {
+    head: head,
+    body: body,
+    startY: 20,
+    styles: { font: 'helvetica', fontSize: 10 },
+    headStyles: { fillColor: [74, 144, 226] },
+  });
+
+  // Fügt die Fehlertabelle hinzu, falls Fehler vorhanden sind
+  if (mistakesData) {
+    const finalY = (doc as any).lastAutoTable.finalY || 20; // Position nach der ersten Tabelle
+    doc.text('Deine Fehler:', 14, finalY + 15);
+    autoTable(doc, {
+      head: mistakesData.head,
+      body: mistakesData.body,
+      startY: finalY + 20,
+      headStyles: { fillColor: [220, 53, 69] }, // Rote Kopfzeile für Fehler
+    });
+  }
+
+  doc.save('lebonmot-verben-ergebnisse.pdf');
+};
 </script>
 
 <template>
@@ -28,11 +61,12 @@ const {
         <LevelSummary
             v-if="levelFinished"
             :mistake-count="store.mistakes.length"
-            :is-verb-trainer="true"
+            :show-download="true"
             @repeat-all="repeatAll"
             @repeat-mistakes="repeatMistakes"
             @back-to-topic="backToConfig"
             @back-to-home="backToHome"
+            @download-pdf="downloadPdf"
         />
 
         <div v-else>

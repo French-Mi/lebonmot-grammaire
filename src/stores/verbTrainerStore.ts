@@ -3,12 +3,12 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import type { ExampleSentence } from '@/types/verb-types'
 
-// --- HIER DIE ERWEITERUNG ---
 export type TrainingMode = 'standard' | 'shuffle' | 'drag-drop' | 'translate' | 'overview' | '';
 
 export type MistakeItem = {
   verbKey: string;
   tense: string;
+  userInput: string; // Hinzugefügt, um die falsche Eingabe zu speichern
   pronounIndex?: number;
   sentence?: ExampleSentence;
 };
