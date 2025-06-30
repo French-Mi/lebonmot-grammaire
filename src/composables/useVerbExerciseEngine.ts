@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import { useVerbTrainerStore, type MistakeItem } from '@/stores/verbTrainerStore';
 import { useProgressStore } from '@/stores/progressStore';
 import { useAppStore } from '@/stores/appStore';
+import { useDailySummaryStore } from '@/stores/dailySummaryStore';
 import { allVerbData } from '@/data/verbs';
 import { getPronounsForTense, getConjugationsForQuiz, getTenseDisplayName } from '@/lib/verb-helper';
 import type { Verb, ExampleSentence } from '@/types/verb-types';
@@ -16,6 +17,9 @@ export type FeedbackResult = {
   originalIndex: number;
 };
 
+// Erweiterter Typ, um den Fragetext direkt zu speichern
+type SessionFeedback = FeedbackResult & { questionText: string };
+
 export type TrainingChallenge = {
   verbKey: string;
   tense: string;
@@ -27,6 +31,7 @@ export function useVerbExerciseEngine() {
   const store = useVerbTrainerStore();
   const progressStore = useProgressStore();
   const appStore = useAppStore();
+  const dailySummaryStore = useDailySummaryStore();
   const router = useRouter();
 
   const trainingQueue = ref<TrainingChallenge[]>([]);
@@ -37,6 +42,7 @@ export function useVerbExerciseEngine() {
   const continueButtonRef = ref<HTMLButtonElement | null>(null);
   const isMistakeRound = ref(false);
   const currentRoundMistakes = ref<MistakeItem[]>([]);
+  const allSessionFeedback = ref<SessionFeedback[]>([]);
 
   const createTrainingQueue = (useMistakes = false) => {
     isMistakeRound.value = useMistakes;
@@ -44,6 +50,7 @@ export function useVerbExerciseEngine() {
     feedbackResults.value = null;
     levelFinished.value = false;
     currentRoundMistakes.value = [];
+    allSessionFeedback.value = [];
     let queue: TrainingChallenge[] = [];
 
     if (useMistakes && store.mistakes.length > 0) {
@@ -54,7 +61,7 @@ export function useVerbExerciseEngine() {
           tense: mistake.tense,
           pronounIndex: mistake.pronounIndex,
           sentence: mistake.sentence,
-          userInput: mistake.userInput // userInput wird hier nicht benötigt, aber der Vollständigkeit halber
+          userInput: mistake.userInput
         }));
       } else if (store.selectedMode === 'drag-drop') {
         const grouped = mistakesToRepeat.reduce<Record<string, TrainingChallenge>>((acc, mistake) => {
@@ -114,13 +121,23 @@ export function useVerbExerciseEngine() {
   });
 
   const handleFeedback = (payload: { results: FeedbackResult[], isPerfect: boolean }) => {
+    const challenge = currentChallenge.value;
+    if (!challenge) return;
+
+    // Antworten mit dem aktuellen Fragetext anreichern und speichern
+    const enrichedResults = payload.results.map(res => ({
+        ...res,
+        questionText: challenge.sentence ? challenge.sentence.de : `${allVerbData[challenge.verbKey].infinitive} (${getTenseDisplayName(challenge.tense)}) - ${res.pronoun}`
+    }));
+    allSessionFeedback.value.push(...enrichedResults);
+
     if (!payload.isPerfect) {
       payload.results.forEach((result) => {
         if (!result.isCorrect && currentChallenge.value) {
             const mistake: MistakeItem = {
                 verbKey: currentChallenge.value.verbKey,
                 tense: currentChallenge.value.tense,
-                userInput: result.userInput, // Die Nutzereingabe wird hier gespeichert
+                userInput: result.userInput,
             };
             if(currentChallenge.value.sentence) {
                 mistake.sentence = currentChallenge.value.sentence;
@@ -133,9 +150,7 @@ export function useVerbExerciseEngine() {
     }
     feedbackResults.value = payload.results;
     showFeedback.value = true;
-    nextTick(() => {
-      continueButtonRef.value?.focus();
-    });
+    nextTick(() => { continueButtonRef.value?.focus(); });
   };
 
   const goToNext = () => {
@@ -162,10 +177,32 @@ export function useVerbExerciseEngine() {
           });
       }
 
-      // Die Fehler aus der Runde werden in den Store übernommen
       store.clearMistakes();
       currentRoundMistakes.value.forEach(mistake => store.addMistake(mistake));
       levelFinished.value = true;
+
+      // Ergebnisse im Daily Summary Store speichern
+      let title = "Verben";
+      if (store.selectedVerbs.length === 1) {
+        const verb = allVerbData[store.selectedVerbs[0]];
+        title += `: ${verb ? verb.infinitive : 'Unbekannt'}`;
+      } else {
+        title += `: ${store.selectedVerbs.length} ausgewählte Verben`;
+      }
+      const tenses = store.selectedTenses.map(t => getTenseDisplayName(t)).join(', ');
+      title += ` (${tenses})`;
+
+      dailySummaryStore.addExerciseSummary({
+        topic: 'Verben',
+        title: title,
+        timestamp: Date.now(),
+        results: allSessionFeedback.value.map(res => ({
+          question: res.questionText,
+          userInput: res.userInput,
+          correctAnswer: res.correctAnswer,
+          isCorrect: res.isCorrect,
+        }))
+      });
     }
   };
 
@@ -263,6 +300,6 @@ export function useVerbExerciseEngine() {
     backToConfig,
     backToHome,
     generateVerbPdfData,
-    generateMistakesPdfData // Die neue Funktion wird exportiert
+    generateMistakesPdfData
   };
 }

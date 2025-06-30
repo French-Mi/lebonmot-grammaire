@@ -4,6 +4,7 @@ import { computed, ref, onMounted, onUnmounted, nextTick } from 'vue';
 import { useGrammarProgressStore } from '../stores/grammarProgressStore';
 import { useProgressStore } from '@/stores/progressStore';
 import { useAppStore } from '@/stores/appStore';
+import { useDailySummaryStore } from '@/stores/dailySummaryStore';
 
 import { pronounData } from '@/data/pronouns/index';
 import type { Exercise, Level, FillInTheBlankQuestion, SentenceOrderQuestion, IdentifyPartQuestion, ClickTheWordQuestion } from '@/data/pronouns/types';
@@ -28,6 +29,11 @@ type FeedbackPayload = {
     translation_de?: string;
 };
 
+// Erweiterter Typ, der den Fragetext direkt speichert
+type EnrichedFeedback = FeedbackPayload & {
+    questionText: string;
+};
+
 type MistakeRecord = {
   topicId: string;
   levelId: string;
@@ -41,6 +47,7 @@ const router = useRouter();
 const grammarStore = useGrammarProgressStore();
 const progressStore = useProgressStore();
 const appStore = useAppStore();
+const dailySummaryStore = useDailySummaryStore();
 
 const topicId = computed(() => route.params.topicId as string);
 const levelId = computed(() => route.params.levelId as string);
@@ -55,7 +62,7 @@ const quizComponentRef = ref<{ nextQuestion: () => void } | null>(null);
 const continueButtonRef = ref<HTMLButtonElement | null>(null);
 const isMistakeRound = ref(false);
 const currentRoundMistakes = ref<MistakeRecord[]>([]);
-const allRoundAnswers = ref<FeedbackPayload[]>([]);
+const allRoundAnswers = ref<EnrichedFeedback[]>([]); // Speichert die angereicherten Antworten
 
 const setupExercises = (mode: 'mistakes' | number) => {
   isMistakeRound.value = mode === 'mistakes';
@@ -112,7 +119,9 @@ const isLastExercise = computed(() => currentExerciseIndex.value >= exerciseQueu
 const summaryTitle = computed(() => isMistakeRound.value ? "Fehlerrunde beendet" : "Übung abgeschlossen!");
 
 const handleFeedback = (payload: FeedbackPayload) => {
-    allRoundAnswers.value.push(payload);
+    // Antwort anreichern und speichern
+    const questionText = getQuestionTextForPdf(currentExercise.value, payload.questionIndex);
+    allRoundAnswers.value.push({ ...payload, questionText });
 
     if (!payload.isCorrect) {
         currentRoundMistakes.value.push({
@@ -171,6 +180,26 @@ const handleExerciseCompleted = () => {
 
         currentRoundMistakes.value.forEach(mistake => grammarStore.addMistake(mistake as any));
         levelFinished.value = true;
+
+        // Ergebnisse im Daily Summary Store speichern
+        const level = currentLevelData.value;
+        const exercise = currentExercise.value;
+        if (level && exercise) {
+            const category = pronounData.categories.find(c => c.levels.some(l => l.uniqueId === levelId.value));
+            const title = `Pronomen > ${category?.title.replace(/A\)|B\)/, '').trim()} > Level ${level.level}: ${level.title}`;
+
+            dailySummaryStore.addExerciseSummary({
+                topic: 'Pronomen',
+                title: title,
+                timestamp: Date.now(),
+                results: allRoundAnswers.value.map(answer => ({
+                    question: answer.questionText,
+                    userInput: answer.userInput,
+                    correctAnswer: answer.correctAnswer || '',
+                    isCorrect: answer.isCorrect,
+                }))
+            });
+        }
     }
 };
 
@@ -230,7 +259,7 @@ const downloadPdf = () => {
 
   const head = [['Frage / Satz', 'Deine Antwort', 'Korrektur']];
   const body = allRoundAnswers.value.map(answer => {
-      const questionText = getQuestionTextForPdf(currentExercise.value, answer.questionIndex);
+      const questionText = answer.questionText;
       const correction = answer.isCorrect ? 'Richtig' : answer.correctAnswer || '';
       return [questionText, answer.userInput, correction];
   });
@@ -240,8 +269,8 @@ const downloadPdf = () => {
       body: body,
       startY: 30,
       headStyles: {
-          fillColor: [74, 144, 226], // Blau
-          textColor: [255, 255, 255] // Weiß
+          fillColor: [74, 144, 226],
+          textColor: [255, 255, 255]
       },
       didParseCell: function (data) {
         if (data.column.index === 2) {

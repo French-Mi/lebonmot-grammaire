@@ -1,89 +1,144 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useProgressStore } from '@/stores/progressStore';
-import { achievements as allAchievements } from '@/data/achievements';
-// Stellt sicher, dass die Komponenten im Ordner 'src/components/dashboard/' liegen
+import { useDailySummaryStore } from '@/stores/dailySummaryStore';
 import ProgressChart from '@/components/dashboard/ProgressChart.vue';
+import { achievements } from '@/data/achievements';
+import type { Achievement } from '@/data/achievements';
 import AchievementIcon from '@/components/dashboard/AchievementIcon.vue';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const progressStore = useProgressStore();
-// HIER IST DIE KORREKTUR für den Fehler aus dem Netlify-Log
-const timeFrame = ref<'week' | 'month' | 'year'>('week');
+const dailySummaryStore = useDailySummaryStore();
+
+// KORREKTUR: Die Liste der freigeschalteten Erfolge wird sicher gefiltert,
+// um den 'undefined'-Fehler zu vermeiden.
+const unlockedAchievementsData = computed(() => {
+  return progressStore.unlockedAchievements
+    .map(id => achievements.find(a => a.id === id))
+    .filter((a): a is Achievement => a !== undefined);
+});
+
+const downloadDailySummary = () => {
+    const doc = new jsPDF();
+    const today = new Date().toLocaleDateString('de-DE');
+    doc.text(`Deine Lernübersicht vom ${today}`, 14, 15);
+
+    let finalY = 20;
+
+    dailySummaryStore.summaries.forEach((summary, index) => {
+        if (finalY > 220 || index > 0) {
+            doc.addPage();
+            finalY = 15;
+        }
+
+        doc.setFontSize(14);
+        doc.text(summary.title, 14, finalY + 10);
+        finalY += 10;
+
+        const head = [['Frage', 'Deine Antwort', 'Korrektur']];
+        const body = summary.results.map(res => {
+            const correction = res.isCorrect ? 'Richtig' : res.correctAnswer;
+            return [res.question, res.userInput, correction];
+        });
+
+        autoTable(doc, {
+            head,
+            body,
+            startY: finalY + 5,
+            headStyles: {
+                fillColor: summary.topic === 'Verben' ? [52, 58, 64] : [74, 144, 226],
+                textColor: [255, 255, 255]
+            },
+            didParseCell: (data) => {
+                if (data.column.index === 2) {
+                    if (data.cell.raw === 'Richtig') {
+                        data.cell.styles.textColor = '#198754';
+                        data.cell.styles.fontStyle = 'bold';
+                    } else {
+                        data.cell.styles.textColor = '#dc3545';
+                    }
+                }
+            }
+        });
+        finalY = (doc as any).lastAutoTable.finalY;
+    });
+
+    doc.save(`lebonmot-lernuebersicht-${today}.pdf`);
+}
 </script>
 
 <template>
-  <div class="view-container">
-    <h1 class="page-title">Dein Fortschritt</h1>
+    <div class="view-container">
+        <h1>Dashboard</h1>
+        <p class="subtitle">Willkommen zurück! Hier ist eine Übersicht deines Fortschritts.</p>
 
-    <div class="card progress-card">
-      <h2>Level {{ progressStore.level }}</h2>
-      <div class="xp-bar-container">
-        <div class="xp-bar-fill" :style="{ width: `${progressStore.progressToNextLevel}%` }"></div>
-      </div>
-      <p class="xp-text">{{ progressStore.xp }} / {{ progressStore.xpForNextLevel }} XP</p>
-    </div>
+        <div class="dashboard-grid">
+            <div class="card chart-card">
+                <h2>XP pro Tag (letzte 7 Tage)</h2>
+                <ProgressChart :chart-data="progressStore.activityLog" time-frame="week" />
+            </div>
+             <div class="card achievements-card">
+                <h2>Erfolge</h2>
+                <div v-if="unlockedAchievementsData.length > 0" class="achievements-grid">
+                    <AchievementIcon
+                        v-for="achievement in unlockedAchievementsData"
+                        :key="achievement.id"
+                        :achievement="achievement"
+                    />
+                </div>
+                <p v-else>Noch keine Erfolge freigeschaltet. Leg los!</p>
+            </div>
 
-    <div class="stats-grid">
-      <div class="card streak-card">
-        <h3>Lernsträhne</h3>
-        <div class="streak-display">
-          <i class="fas fa-fire streak-icon"></i>
-          <span>Du hast <strong>{{ progressStore.streak }}</strong> Tage in Folge gelernt!</span>
+            <div class="card summary-card">
+                <h2>Tagesübersicht</h2>
+                <p>Lade eine PDF-Zusammenfassung aller heutigen Übungen herunter.</p>
+                <button
+                    @click="downloadDailySummary"
+                    :disabled="!dailySummaryStore.hasSummaries"
+                    class="btn btn-primary"
+                >
+                    Lernübersicht als PDF
+                </button>
+            </div>
         </div>
-      </div>
-      <div class="card achievements-card">
-        <h3>Erfolge</h3>
-        <div class="achievements-container">
-          <AchievementIcon
-            v-for="achievement in allAchievements"
-            :key="achievement.id"
-            :achievement="achievement"
-            :class="{ 'unlocked': progressStore.unlockedAchievements.includes(achievement.id) }"
-          />
-        </div>
-      </div>
     </div>
-
-    <div class="card chart-card">
-      <div class="chart-header">
-        <h3>Lernaktivität</h3>
-        <select v-model="timeFrame" class="timeframe-select">
-          <option value="week">Woche</option>
-          <option value="month">Monat</option>
-          <option value="year">Jahr</option>
-        </select>
-      </div>
-      <ProgressChart :chart-data="progressStore.activityLog" :time-frame="timeFrame" />
-    </div>
-  </div>
 </template>
 
 <style scoped>
-.view-container {
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 2rem 1rem;
+.subtitle {
+    margin-top: -1rem;
+    color: var(--muted-text);
 }
-.page-title { font-size: 2.5rem; margin-bottom: 2rem; color: var(--header-blue); text-align: center; }
-.card { background-color: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 2rem; }
-
-.progress-card h2 { margin-top: 0; text-align: center; }
-.xp-bar-container { width: 100%; background-color: #e9ecef; border-radius: 8px; height: 16px; overflow: hidden; margin-top: 1rem; }
-.xp-bar-fill { height: 100%; background-color: var(--primary-blue); transition: width 0.5s ease; border-radius: 8px; }
-.xp-text { text-align: right; color: #6b7280; margin-top: 0.5rem; font-size: 0.9rem; font-weight: 500;}
-
-.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; }
-.streak-card, .achievements-card { display: flex; flex-direction: column; }
-.streak-card h3, .achievements-card h3, .chart-card h3 { margin-top: 0; margin-bottom: 1rem; }
-
-.streak-display { display: flex; align-items: center; justify-content: center; font-size: 1.1rem; margin-top: 1rem; flex-grow: 1; }
-.streak-icon { color: #f97316; font-size: 2rem; margin-right: 1rem; }
-
-.achievements-container { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem; align-content: flex-start; }
-/* Die :deep() Selektoren greifen in die Kind-Komponente 'AchievementIcon' ein */
-.achievements-container > :deep(.achievement-container) { opacity: 0.3; filter: grayscale(80%); }
-.achievements-container > :deep(.unlocked) { opacity: 1; filter: grayscale(0%); }
-
-.chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
-.timeframe-select { padding: 0.3rem 0.5rem; border-radius: 6px; border: 1px solid #ced4da; background-color: #f8f9fa; }
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+}
+.card {
+    padding: 1.5rem 2rem;
+}
+.chart-card {
+    grid-column: 1 / -1;
+}
+.achievements-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+.summary-card p {
+    margin-bottom: 1.5rem;
+}
+.summary-card .btn-primary {
+    width: 100%;
+    padding: 0.8rem;
+    font-size: 1.1rem;
+}
+.btn-primary:disabled {
+    background-color: var(--border-color);
+    cursor: not-allowed;
+}
 </style>
