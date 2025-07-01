@@ -119,7 +119,6 @@ const isLastExercise = computed(() => currentExerciseIndex.value >= exerciseQueu
 const summaryTitle = computed(() => isMistakeRound.value ? "Fehlerrunde beendet" : "Übung abgeschlossen!");
 
 const handleFeedback = (payload: FeedbackPayload) => {
-    // Antwort anreichern und speichern
     const questionText = getQuestionTextForPdf(currentExercise.value, payload.questionIndex);
     allRoundAnswers.value.push({ ...payload, questionText });
 
@@ -141,7 +140,10 @@ const advanceToNext = () => {
     showFeedback.value = false;
     feedbackDetails.value = null;
 
-    if(currentExercise.value.type === 'matchPairs') {
+    // KORREKTUR: 'clickTheWord' wird jetzt wie die meisten anderen Übungen behandelt.
+    // 'matchPairs' ist ein Sonderfall, da es sich selbst beendet.
+    if (currentExercise.value.type === 'matchPairs') {
+      quizComponentRef.value?.nextQuestion(); // Sicherstellen, dass die Komponente sich beenden kann
       handleExerciseCompleted();
       return;
     }
@@ -181,7 +183,6 @@ const handleExerciseCompleted = () => {
         currentRoundMistakes.value.forEach(mistake => grammarStore.addMistake(mistake as any));
         levelFinished.value = true;
 
-        // Ergebnisse im Daily Summary Store speichern
         const level = currentLevelData.value;
         const exercise = currentExercise.value;
         if (level && exercise) {
@@ -287,6 +288,13 @@ const downloadPdf = () => {
   doc.save(`lebonmot-ergebnisse-${level.uniqueId}.pdf`);
 };
 
+const showGlobalFeedback = computed(() => {
+    if (!showFeedback.value || !feedbackDetails.value) {
+        return false;
+    }
+    return currentExercise.value?.type !== 'clickTheWord';
+});
+
 </script>
 
 <template>
@@ -308,7 +316,6 @@ const downloadPdf = () => {
 
         <div v-if="currentLevelData && currentExercise">
             <h1 class="exercise-title">{{ currentExercise.shortTitle }}</h1>
-            <h2 class="exercise-instructions">{{ currentExercise.instructions }}</h2>
 
             <QuizFillInTheBlank ref="quizComponentRef" v-if="currentExercise.type === 'fillInTheBlank'" :exercise-data="currentExercise" @completed="handleExerciseCompleted" @feedback="handleFeedback" />
             <QuizSentenceOrder ref="quizComponentRef" v-if="currentExercise.type === 'sentenceOrder'" :exercise-data="currentExercise" @completed="handleExerciseCompleted" @feedback="handleFeedback" />
@@ -316,7 +323,7 @@ const downloadPdf = () => {
             <QuizIdentifyPart ref="quizComponentRef" v-if="currentExercise.type === 'identifyPart'" :exercise-data="currentExercise" @completed="handleExerciseCompleted" @feedback="handleFeedback" />
             <QuizClickTheWord ref="quizComponentRef" v-if="currentExercise.type === 'clickTheWord'" :exercise-data="currentExercise" @completed="handleExerciseCompleted" @feedback="handleFeedback" />
 
-            <div v-if="showFeedback && feedbackDetails" class="feedback-container-global">
+            <div v-if="showGlobalFeedback && feedbackDetails" class="feedback-container-global">
                 <div v-if="feedbackDetails.isCorrect" class="feedback-box correct">
                     <p>Richtig!</p>
                     <p v-if="feedbackDetails.translation_de" class="translation">{{ feedbackDetails.translation_de }}</p>

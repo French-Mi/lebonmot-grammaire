@@ -56,7 +56,6 @@ export interface TheoryContent {
     title: string;
     items: TheoryExample[];
   }[];
-  // NEUE Eigenschaft speziell für die Reihenfolge-Tabelle
   orderChart?: {
       headers: string[];
   };
@@ -241,11 +240,35 @@ export const theoryData: Record<string, TheoryContent> = {
     positioningRules: newPositioningRules,
     orderChart: pronounOrderChartData
   },
+  // KORRIGIERTER BLOCK für 'obj-6' mit tabellarischer Darstellung
   'obj-6': {
-    title: "Das Pronomen 'y'",
-    intro: "Das Pronomen 'y' ersetzt hauptsächlich Ortsangaben oder Dinge/Ideen, die mit 'à' eingeleitet werden (z.B. penser à qc).",
-     positioningRules: newPositioningRules,
-     orderChart: pronounOrderChartData
+    title: "Das Pronomen «y»",
+    intro: "Das Pronomen «y» bedeutet meist <i>dort, da</i> oder <i>daran</i>.<br><br>Es ersetzt Ergänzungen, die mit der Präposition <strong>à</strong> oder einer anderen Ortspräposition (außer 'de') eingeleitet werden:",
+    comparisonTable: {
+        headers: ["Regel", "Beispiel"],
+        rows: [
+            {
+                category: "→ Ortsangaben (mit à, en, sur, dans...)",
+                values: [
+                    "Tu vas <strong>à la piscine</strong>?<br>→ Oui, j’<strong>y</strong> vais.<br><small>(Gehst du ins Schwimmbad? → Ja, ich gehe dorthin.)</small>"
+                ]
+            },
+            {
+                category: "→ Indirekte Objekte mit 'à' (Sachen/Ideen)",
+                values: [
+                    "Tu penses <strong>à ton avenir</strong>?<br>→ Oui, j’<strong>y</strong> pense.<br><small>(Denkst du an deine Zukunft? → Ja, ich denke daran.)</small>"
+                ]
+            },
+            {
+                category: "→ ACHTUNG: Niemals für Personen!",
+                values: [
+                    "Je pense <strong>à Paul</strong>.<br>→ Je pense <strong>à lui</strong>.<br><small>(Ich denke an Paul. → Ich denke an ihn.)</small><br><strong style='color: #dc3545;'>Falsch: <span style='text-decoration: line-through;'>J'y pense.</span></strong>"
+                ]
+            }
+        ]
+    },
+    positioningRules: newPositioningRules,
+    orderChart: pronounOrderChartData
   },
    'obj-7': {
     title: "Die Pronomen 'y' und 'en'",

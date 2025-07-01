@@ -56,6 +56,7 @@ export interface IdentifyPartExercise extends BaseExercise {
 export interface ClickTheWordQuestion {
   sentence: string;
   prompt: string;
+  answerContext?: string; // NEU
   answer: string[];
   explanation?: string;
   translation_de?: string;
@@ -73,7 +74,6 @@ export type Exercise =
   | IdentifyPartExercise; // Alle Übungstypen sind hier vereint
 
 // --- Haupt-Datenstruktur ---
-// Der Typ 'Level' wird hier korrekt verwendet, wie in deiner ursprünglichen Datei.
 export interface Level {
   level: number;
   uniqueId: string;
