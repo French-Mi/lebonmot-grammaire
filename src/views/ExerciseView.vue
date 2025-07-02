@@ -142,12 +142,6 @@ const advanceToNext = () => {
     showFeedback.value = false;
     feedbackDetails.value = null;
 
-    if (currentExercise.value.type === 'matchPairs') {
-      quizComponentRef.value?.nextQuestion();
-      handleExerciseCompleted();
-      return;
-    }
-
     if (quizComponentRef.value) {
       quizComponentRef.value.nextQuestion();
     }
@@ -210,7 +204,6 @@ const handleExerciseCompleted = () => {
     }
 };
 
-// KORRIGIERT: Prüft Belohnungen basierend auf dem XP-Level
 const checkAndUnlockRewards = () => {
   const currentXPLevel = progressStore.level;
 
@@ -312,12 +305,15 @@ const downloadPdf = () => {
   doc.save(`lebonmot-ergebnisse-${level.uniqueId}.pdf`);
 };
 
+// KORREKTUR: Die globale Feedback-Leiste wird jetzt auch für 'matchPairs' ausgeblendet.
 const showGlobalFeedback = computed(() => {
     if (!showFeedback.value || !feedbackDetails.value) {
         return false;
     }
-    return currentExercise.value?.type !== 'clickTheWord';
+    const typesWithLocalFeedback = ['clickTheWord', 'matchPairs'];
+    return !typesWithLocalFeedback.includes(currentExercise.value?.type);
 });
+
 </script>
 
 <template>
