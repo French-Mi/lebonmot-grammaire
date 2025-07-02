@@ -5,6 +5,8 @@ import { useGrammarProgressStore } from '../stores/grammarProgressStore';
 import { useProgressStore } from '@/stores/progressStore';
 import { useAppStore } from '@/stores/appStore';
 import { useDailySummaryStore } from '@/stores/dailySummaryStore';
+import { useUserProfileStore } from '@/stores/userProfileStore'; // NEU
+import { appRewards } from '@/data/rewards'; // NEU
 
 import { pronounData } from '@/data/pronouns/index';
 import type { Exercise, Level, FillInTheBlankQuestion, SentenceOrderQuestion, IdentifyPartQuestion, ClickTheWordQuestion } from '@/data/pronouns/types';
@@ -29,7 +31,6 @@ type FeedbackPayload = {
     translation_de?: string;
 };
 
-// Erweiterter Typ, der den Fragetext direkt speichert
 type EnrichedFeedback = FeedbackPayload & {
     questionText: string;
 };
@@ -48,6 +49,7 @@ const grammarStore = useGrammarProgressStore();
 const progressStore = useProgressStore();
 const appStore = useAppStore();
 const dailySummaryStore = useDailySummaryStore();
+const userProfileStore = useUserProfileStore(); // NEU
 
 const topicId = computed(() => route.params.topicId as string);
 const levelId = computed(() => route.params.levelId as string);
@@ -62,7 +64,7 @@ const quizComponentRef = ref<{ nextQuestion: () => void } | null>(null);
 const continueButtonRef = ref<HTMLButtonElement | null>(null);
 const isMistakeRound = ref(false);
 const currentRoundMistakes = ref<MistakeRecord[]>([]);
-const allRoundAnswers = ref<EnrichedFeedback[]>([]); // Speichert die angereicherten Antworten
+const allRoundAnswers = ref<EnrichedFeedback[]>([]);
 
 const setupExercises = (mode: 'mistakes' | number) => {
   isMistakeRound.value = mode === 'mistakes';
@@ -140,10 +142,8 @@ const advanceToNext = () => {
     showFeedback.value = false;
     feedbackDetails.value = null;
 
-    // KORREKTUR: 'clickTheWord' wird jetzt wie die meisten anderen Übungen behandelt.
-    // 'matchPairs' ist ein Sonderfall, da es sich selbst beendet.
     if (currentExercise.value.type === 'matchPairs') {
-      quizComponentRef.value?.nextQuestion(); // Sicherstellen, dass die Komponente sich beenden kann
+      quizComponentRef.value?.nextQuestion();
       handleExerciseCompleted();
       return;
     }
@@ -159,6 +159,11 @@ const handleExerciseCompleted = () => {
     } else {
         const mistakesCount = currentRoundMistakes.value.length;
         const isPerfect = mistakesCount === 0;
+
+        // Level nur als abgeschlossen markieren, wenn es keine Fehlerrunde war ODER die Fehlerrunde perfekt war.
+        if (!isMistakeRound.value || (isMistakeRound.value && isPerfect)) {
+          grammarStore.markLevelAsCompleted(topicId.value, levelId.value);
+        }
 
         progressStore.addXp(isPerfect ? 30 : 15, topicId.value);
         progressStore.logSession();
@@ -179,6 +184,9 @@ const handleExerciseCompleted = () => {
                 });
             }
         }
+
+        // NEUE LOGIK: Belohnungen prüfen und freischalten
+        checkAndUnlockRewards();
 
         currentRoundMistakes.value.forEach(mistake => grammarStore.addMistake(mistake as any));
         levelFinished.value = true;
@@ -202,6 +210,24 @@ const handleExerciseCompleted = () => {
             });
         }
     }
+};
+
+// NEUE FUNKTION: Prüft, ob neue Belohnungen freigeschaltet werden können.
+const checkAndUnlockRewards = () => {
+  const totalCompleted = grammarStore.totalCompletedLevels;
+
+  appRewards.forEach(reward => {
+    const isUnlocked = userProfileStore.unlockedAvatars.includes(reward.value);
+
+    if (!isUnlocked && totalCompleted >= reward.requiredLevels) {
+      userProfileStore.unlockReward(reward);
+      appStore.showNotification({
+        title: 'Belohnung freigeschaltet!',
+        description: `Neuer Avatar: ${reward.name}`,
+        icon: 'fas fa-star'
+      });
+    }
+  });
 };
 
 const handleGlobalKeydown = (event: KeyboardEvent) => {
@@ -294,7 +320,6 @@ const showGlobalFeedback = computed(() => {
     }
     return currentExercise.value?.type !== 'clickTheWord';
 });
-
 </script>
 
 <template>

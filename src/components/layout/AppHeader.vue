@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router';
+import { useUserProfileStore } from '@/stores/userProfileStore';
+
+const profileStore = useUserProfileStore();
 </script>
 
 <template>
@@ -22,8 +25,8 @@ import { RouterLink } from 'vue-router';
       <nav class="main-nav">
         <RouterLink to="/" class="nav-link">Grammatik</RouterLink>
         <RouterLink to="/verb-trainer" class="nav-link">Verben</RouterLink>
-        <RouterLink to="/dashboard" class="nav-link profile-link" title="Dein Fortschritt">
-          <i class="fas fa-user-circle"></i>
+        <RouterLink to="/dashboard" class="nav-link profile-link" title="Dein Dashboard">
+          <img :src="`/avatars/${profileStore.selectedAvatar}`" alt="Avatar" class="user-avatar-icon" />
         </RouterLink>
       </nav>
     </div>
@@ -69,14 +72,27 @@ import { RouterLink } from 'vue-router';
   font-size: 1rem;
   padding: 0.5rem 0;
   border-bottom: 2px solid transparent;
-  transition: border-color 0.2s;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
 }
 .nav-link:hover,
 .nav-link.router-link-exact-active {
   border-bottom-color: white;
 }
-.profile-link {
-  font-size: 1.5rem;
+.profile-link:hover .user-avatar-icon {
+    transform: scale(1.1);
+}
+
+.user-avatar-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #f8f9fa;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  object-fit: contain;
+  padding: 2px;
+  transition: transform 0.2s ease-in-out;
 }
 
 /* Logo Styles */

@@ -44,3 +44,9 @@ export interface Verb {
     [tenseKey: string]: ExampleSentence[];
   };
 }
+
+// NEU: Hinzugefügter Typ für die Drag-and-Drop-Komponente
+export interface VerbForm {
+  pronoun: string;
+  form: string;
+}

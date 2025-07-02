@@ -1,68 +1,76 @@
-// src/stores/grammarProgressStore.ts
-import { ref, watch } from 'vue'
-import { defineStore } from 'pinia'
+import { ref, watch, computed } from 'vue';
+import { defineStore } from 'pinia';
 import type { Exercise } from '@/data/pronouns/types';
 
-export type MistakeItem = {
+// Die Struktur für einen Fehler-Eintrag
+export interface MistakeRecord {
   topicId: string;
   levelId: string;
   exercise: Exercise;
   questionIndex: number;
+  userInput: string;
 }
 
 export const useGrammarProgressStore = defineStore('grammarProgress', () => {
-  const mistakes = ref<MistakeItem[]>([]);
-  // NEU: Speichert die IDs der perfekt abgeschlossenen Übungen
-  const perfectedExercises = ref<string[]>([]);
+  const completedLevels = ref<Record<string, string[]>>({});
+  const mistakes = ref<MistakeRecord[]>([]);
 
-  // Lade den Zustand aus dem LocalStorage beim Initialisieren
+  // Lade den Zustand aus dem LocalStorage
   const savedState = localStorage.getItem('leBonMotGrammarProgress');
   if (savedState) {
     const state = JSON.parse(savedState);
+    completedLevels.value = state.completedLevels || {};
     mistakes.value = state.mistakes || [];
-    perfectedExercises.value = state.perfectedExercises || [];
   }
 
   // Speichere den Zustand bei jeder Änderung
-  watch([mistakes, perfectedExercises], (newState) => {
-    const state = {
-      mistakes: newState[0],
-      perfectedExercises: newState[1]
-    };
-    localStorage.setItem('leBonMotGrammarProgress', JSON.stringify(state));
+  watch([completedLevels, mistakes], (newState) => {
+    localStorage.setItem('leBonMotGrammarProgress', JSON.stringify({
+      completedLevels: newState[0],
+      mistakes: newState[1]
+    }));
   }, { deep: true });
 
-  function addMistake(item: MistakeItem) {
-    const exists = mistakes.value.some(m =>
-        m.topicId === item.topicId &&
-        m.levelId === item.levelId &&
-        m.exercise.instructions === item.exercise.instructions &&
-        m.questionIndex === item.questionIndex
-    );
-    if (!exists) {
-        mistakes.value.push(item);
+  const totalCompletedLevels = computed(() => {
+    return Object.values(completedLevels.value).reduce((total, levels) => total + levels.length, 0);
+  });
+
+  function markLevelAsCompleted(topicId: string, levelId: string) {
+    if (!completedLevels.value[topicId]) {
+      completedLevels.value[topicId] = [];
+    }
+    if (!completedLevels.value[topicId].includes(levelId)) {
+      completedLevels.value[topicId].push(levelId);
     }
   }
 
-  // NEU: Fügt eine perfekt absolvierte Übung hinzu
-  function addPerfectedExercise(exerciseId: string) {
-      if (!perfectedExercises.value.includes(exerciseId)) {
-          perfectedExercises.value.push(exerciseId);
-      }
+  function addMistake(mistake: MistakeRecord) {
+    const exists = mistakes.value.some(m =>
+      m.topicId === mistake.topicId &&
+      m.levelId === mistake.levelId &&
+      m.exercise.instructions === mistake.exercise.instructions &&
+      m.questionIndex === mistake.questionIndex
+    );
+    if (!exists) {
+      mistakes.value.push(mistake);
+    }
   }
 
-  function getMistakesForLevel(topicId: string, levelId: string): MistakeItem[] {
-    return mistakes.value
-      .filter(m => m.topicId === topicId && m.levelId === levelId);
+  function getMistakesForLevel(topicId: string, levelId: string) {
+    return mistakes.value.filter(m => m.topicId === topicId && m.levelId === levelId);
   }
 
   function clearMistakesForLevel(topicId: string, levelId: string) {
-    mistakes.value = mistakes.value.filter(m => m.topicId !== topicId || m.levelId !== levelId);
+    mistakes.value = mistakes.value.filter(m => !(m.topicId === topicId && m.levelId === levelId));
   }
 
-  function clearAllMistakes() {
-      mistakes.value = [];
-  }
-
-  return { mistakes, perfectedExercises, addMistake, addPerfectedExercise, getMistakesForLevel, clearMistakesForLevel, clearAllMistakes }
-})
+  return {
+    completedLevels,
+    mistakes,
+    totalCompletedLevels,
+    markLevelAsCompleted,
+    addMistake,
+    getMistakesForLevel,
+    clearMistakesForLevel
+  };
+});
