@@ -1,30 +1,29 @@
-# Logs
-logs
-*.log
+# Log-Dateien
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
 
-node_modules
-.DS_Store
+# Build-Artefakte
 dist
 dist-ssr
-coverage
-*.local
 
-/cypress/videos/
-/cypress/screenshots/
+# Abhängigkeiten
+/node_modules
 
-# Editor directories and files
+# IDE-spezifische Ordner
+.idea
 .vscode/*
 !.vscode/extensions.json
-.idea
+.history
+
+# Umgebungsvariablen
+.env
+.env.local
+.env.*.local
+
+# Sonstiges
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-
-*.tsbuildinfo
