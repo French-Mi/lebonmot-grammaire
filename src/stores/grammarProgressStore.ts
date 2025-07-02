@@ -1,4 +1,4 @@
-import { ref, watch } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { defineStore } from 'pinia';
 import type { Exercise } from '@/data/pronouns/types';
 
@@ -12,6 +12,7 @@ export interface MistakeRecord {
 }
 
 export const useGrammarProgressStore = defineStore('grammarProgress', () => {
+  // State als 'ref'
   const completedLevels = ref<Record<string, string[]>>({});
   const mistakes = ref<MistakeRecord[]>([]);
 
@@ -24,21 +25,25 @@ export const useGrammarProgressStore = defineStore('grammarProgress', () => {
   }
 
   // Speichere den Zustand bei jeder Änderung
-  watch([completedLevels, mistakes], (newState) => {
-    localStorage.setItem('leBonMotGrammarProgress', JSON.stringify({
-      completedLevels: newState[0],
-      mistakes: newState[1]
-    }));
-  }, { deep: true });
+  watch(
+    [completedLevels, mistakes],
+    (newState) => {
+      const stateToSave = {
+        completedLevels: newState[0],
+        mistakes: newState[1],
+      };
+      localStorage.setItem('leBonMotGrammarProgress', JSON.stringify(stateToSave));
+    },
+    { deep: true }
+  );
 
-  // Die überflüssige Getter-Funktion wurde entfernt.
-
+  // Actions als normale Funktionen
   function markLevelAsCompleted(topicId: string, levelId: string) {
     if (!completedLevels.value[topicId]) {
       completedLevels.value[topicId] = [];
     }
-    if (!this.completedLevels[topicId].includes(levelId)) {
-      this.completedLevels[topicId].push(levelId);
+    if (!completedLevels.value[topicId].includes(levelId)) {
+      completedLevels.value[topicId].push(levelId);
     }
   }
 
@@ -54,7 +59,7 @@ export const useGrammarProgressStore = defineStore('grammarProgress', () => {
     }
   }
 
-  function getMistakesForLevel(topicId: string, levelId: string) {
+  function getMistakesForLevel(topicId: string, levelId: string): MistakeRecord[] {
     return mistakes.value.filter(m => m.topicId === topicId && m.levelId === levelId);
   }
 
@@ -62,12 +67,13 @@ export const useGrammarProgressStore = defineStore('grammarProgress', () => {
     mistakes.value = mistakes.value.filter(m => !(m.topicId === topicId && m.levelId === levelId));
   }
 
+  // Gib alles zurück, was die App benötigt
   return {
     completedLevels,
     mistakes,
     markLevelAsCompleted,
     addMistake,
     getMistakesForLevel,
-    clearMistakesForLevel
+    clearMistakesForLevel,
   };
 });
