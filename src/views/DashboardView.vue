@@ -24,7 +24,6 @@ const unlockedAchievementsData = computed((): Achievement[] => {
     .filter((a): a is Achievement => a !== undefined);
 });
 
-// NEU: Diese Logik zeigt jetzt ALLE Avatare an und markiert sie als freigeschaltet oder gesperrt.
 const allAvatarRewardsForDisplay = computed(() => {
   const defaultAvatar = { id: 'avatar-default', name: 'Standard', description: 'Der Start-Avatar.', requiredLevels: 0, type: 'avatar', value: 'default.png', isUnlocked: true };
 
@@ -84,12 +83,13 @@ const downloadDailySummary = () => {
                   'locked': !reward.isUnlocked
                 }"
                 @click="reward.isUnlocked ? handleAvatarSelect(reward.value) : null"
-                :title="reward.isUnlocked ? reward.description : `Erreiche Level ${reward.requiredLevels}, um diesen Avatar freizuschalten.`"
               >
+                <span class="tooltip-text">
+                  {{ reward.value === 'default.png' ? 'Dein Standard-Avatar' : (reward.isUnlocked ? `${reward.name} (freigeschaltet)` : `Wird freigeschaltet ab Level ${reward.requiredLevels}`) }}
+                </span>
                 <div class="avatar-image-wrapper">
                   <img :src="`/avatars/${reward.value}`" :alt="reward.name" class="reward-avatar-image" />
                 </div>
-                <h3 class="reward-name">{{ reward.name }}</h3>
                 <span v-if="!reward.isUnlocked" class="lock-icon">
                     <i class="fas fa-lock"></i>
                 </span>
@@ -130,31 +130,39 @@ const downloadDailySummary = () => {
 .avatar-display:hover .edit-icon-wrapper { transform: scale(1.1); }
 .avatar-hint { font-size: 0.9rem; color: var(--muted-text); margin-top: 1rem; }
 .avatar-selection-panel { margin-top: 2rem; }
-.rewards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 1.5rem; margin-top: 1rem; }
-.reward-card { position: relative; border-radius: 12px; border: 2px solid var(--border-color); padding: 1rem; text-align: center; cursor: pointer; transition: all 0.2s ease-in-out; }
+.rewards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 1rem; margin-top: 1rem; }
+.reward-card { position: relative; border-radius: 12px; border: 2px solid var(--border-color); padding: 0.75rem; text-align: center; cursor: pointer; transition: all 0.2s ease-in-out; display: flex; align-items: center; justify-content: center; aspect-ratio: 1 / 1; }
 .reward-card:not(.locked):hover { transform: translateY(-5px); border-color: var(--primary-blue); }
 .reward-card.selected { border-color: var(--success-color); box-shadow: 0 0 10px rgba(25, 135, 84, 0.3); }
+.reward-card.locked { opacity: 0.5; cursor: not-allowed; filter: grayscale(80%); }
 
-/* NEUE STYLES für gesperrte Avatare */
-.reward-card.locked {
-  opacity: 0.5;
-  cursor: not-allowed;
-  filter: grayscale(80%);
+/* NEUE Tooltip-Styles */
+.tooltip-text {
+  visibility: hidden;
+  width: max-content;
+  max-width: 200px;
+  background-color: #343a40;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 5px 10px;
+  position: absolute;
+  z-index: 10;
+  bottom: 110%; /* Positioniert den Tooltip über der Karte */
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0;
+  transition: opacity 0.2s;
+  font-size: 0.85rem;
 }
-.lock-icon {
-    position: absolute;
-    top: 5px;
-    right: 5px;
-    color: #343a40;
-    font-size: 0.8rem;
-    background-color: rgba(255, 255, 255, 0.7);
-    padding: 0.3rem;
-    border-radius: 50%;
+.reward-card:hover .tooltip-text {
+  visibility: visible;
+  opacity: 1;
 }
 
-.avatar-image-wrapper { width: 80px; height: 80px; margin: 0 auto 0.5rem; background-color: #f1f3f5; border-radius: 50%; padding: 0.5rem; }
+.lock-icon { position: absolute; top: 5px; right: 5px; color: #343a40; font-size: 0.8rem; background-color: rgba(255, 255, 255, 0.7); padding: 0.3rem; border-radius: 50%; }
+.avatar-image-wrapper { width: 100%; height: 100%; margin: 0; background-color: #f1f3f5; border-radius: 50%; padding: 0.5rem; }
 .reward-avatar-image { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
-.reward-name { font-size: 0.9rem; font-weight: 500; }
 .bottom-row { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 2rem; }
 .info-card { display: flex; flex-direction: column; }
 .info-card p { flex-grow: 1; }

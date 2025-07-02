@@ -1,4 +1,4 @@
-import { ref, watch, computed } from 'vue';
+import { ref, watch } from 'vue';
 import { defineStore } from 'pinia';
 import type { Exercise } from '@/data/pronouns/types';
 
@@ -31,16 +31,14 @@ export const useGrammarProgressStore = defineStore('grammarProgress', () => {
     }));
   }, { deep: true });
 
-  const totalCompletedLevels = computed(() => {
-    return Object.values(completedLevels.value).reduce((total, levels) => total + levels.length, 0);
-  });
+  // Die überflüssige Getter-Funktion wurde entfernt.
 
   function markLevelAsCompleted(topicId: string, levelId: string) {
     if (!completedLevels.value[topicId]) {
       completedLevels.value[topicId] = [];
     }
-    if (!completedLevels.value[topicId].includes(levelId)) {
-      completedLevels.value[topicId].push(levelId);
+    if (!this.completedLevels[topicId].includes(levelId)) {
+      this.completedLevels[topicId].push(levelId);
     }
   }
 
@@ -67,7 +65,6 @@ export const useGrammarProgressStore = defineStore('grammarProgress', () => {
   return {
     completedLevels,
     mistakes,
-    totalCompletedLevels,
     markLevelAsCompleted,
     addMistake,
     getMistakesForLevel,

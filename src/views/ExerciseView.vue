@@ -5,8 +5,8 @@ import { useGrammarProgressStore } from '../stores/grammarProgressStore';
 import { useProgressStore } from '@/stores/progressStore';
 import { useAppStore } from '@/stores/appStore';
 import { useDailySummaryStore } from '@/stores/dailySummaryStore';
-import { useUserProfileStore } from '@/stores/userProfileStore'; // NEU
-import { appRewards } from '@/data/rewards'; // NEU
+import { useUserProfileStore } from '@/stores/userProfileStore';
+import { appRewards } from '@/data/rewards';
 
 import { pronounData } from '@/data/pronouns/index';
 import type { Exercise, Level, FillInTheBlankQuestion, SentenceOrderQuestion, IdentifyPartQuestion, ClickTheWordQuestion } from '@/data/pronouns/types';
@@ -49,7 +49,7 @@ const grammarStore = useGrammarProgressStore();
 const progressStore = useProgressStore();
 const appStore = useAppStore();
 const dailySummaryStore = useDailySummaryStore();
-const userProfileStore = useUserProfileStore(); // NEU
+const userProfileStore = useUserProfileStore();
 
 const topicId = computed(() => route.params.topicId as string);
 const levelId = computed(() => route.params.levelId as string);
@@ -160,8 +160,7 @@ const handleExerciseCompleted = () => {
         const mistakesCount = currentRoundMistakes.value.length;
         const isPerfect = mistakesCount === 0;
 
-        // Level nur als abgeschlossen markieren, wenn es keine Fehlerrunde war ODER die Fehlerrunde perfekt war.
-        if (!isMistakeRound.value || (isMistakeRound.value && isPerfect)) {
+        if (isPerfect && !isMistakeRound.value) {
           grammarStore.markLevelAsCompleted(topicId.value, levelId.value);
         }
 
@@ -185,7 +184,6 @@ const handleExerciseCompleted = () => {
             }
         }
 
-        // NEUE LOGIK: Belohnungen prüfen und freischalten
         checkAndUnlockRewards();
 
         currentRoundMistakes.value.forEach(mistake => grammarStore.addMistake(mistake as any));
@@ -212,14 +210,14 @@ const handleExerciseCompleted = () => {
     }
 };
 
-// NEUE FUNKTION: Prüft, ob neue Belohnungen freigeschaltet werden können.
+// KORRIGIERT: Prüft Belohnungen basierend auf dem XP-Level
 const checkAndUnlockRewards = () => {
-  const totalCompleted = grammarStore.totalCompletedLevels;
+  const currentXPLevel = progressStore.level;
 
   appRewards.forEach(reward => {
     const isUnlocked = userProfileStore.unlockedAvatars.includes(reward.value);
 
-    if (!isUnlocked && totalCompleted >= reward.requiredLevels) {
+    if (!isUnlocked && currentXPLevel >= reward.requiredLevels) {
       userProfileStore.unlockReward(reward);
       appStore.showNotification({
         title: 'Belohnung freigeschaltet!',
