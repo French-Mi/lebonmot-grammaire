@@ -1,106 +1,92 @@
 <script setup lang="ts">
-import { RouterLink } from 'vue-router';
+import { useRouter } from 'vue-router';
 import { useUserProfileStore } from '@/stores/userProfileStore';
 
+const router = useRouter();
 const profileStore = useUserProfileStore();
+
+const goHome = () => {
+  router.push('/');
+};
+
+const navigateToDashboard = () => {
+  router.push('/dashboard');
+};
 </script>
 
 <template>
   <header class="app-header">
-    <div class="header-content">
-      <RouterLink to="/" class="logo-link">
-        <div class="logo">
-          <div class="speech-bubble-body">
-            <div class="flag-icon">
-              <div class="flag-blue"></div>
-              <div class="flag-white"></div>
-              <div class="flag-red"></div>
-            </div>
-          </div>
-          <div class="speech-bubble-tail"></div>
-        </div>
-        <span class="logo-text">le BonMot</span>
-      </RouterLink>
+    <div class="logo-container" @click="goHome" style="cursor: pointer;">
+      <svg class="header-logo-svg" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M85 22.0001C85 18.1341 81.866 15.0001 78 15.0001H22C18.134 15.0001 15 18.1341 15 22.0001V62.0001C15 65.8661 18.134 69.0001 22 69.0001H35V81.0001L50.5 69.0001H78C81.866 69.0001 85 65.8661 85 62.0001V22.0001Z" fill="white"></path><rect x="25" y="25.0001" width="16.6667" height="34" fill="#0055A4"></rect><rect x="41.6667" y="25.0001" width="16.6666" height="34" fill="white"></rect><rect x="58.3333" y="25.0001" width="16.6667" height="34" fill="#EF4135"></rect></svg>
+      <h1>le BonMot</h1>
+    </div>
 
-      <nav class="main-nav">
-        <RouterLink to="/" class="nav-link">Grammatik</RouterLink>
-        <RouterLink to="/verb-trainer" class="nav-link">Verben</RouterLink>
-        <RouterLink to="/dashboard" class="nav-link profile-link" title="Dein Dashboard">
-          <img :src="`/avatars/${profileStore.selectedAvatar}`" alt="Avatar" class="user-avatar-icon" />
-        </RouterLink>
-      </nav>
+    <div class="header-title">
+      <h2>Grammatiktrainer</h2>
+    </div>
+
+    <div class="user-menu" @click="navigateToDashboard" style="cursor: pointer;">
+      <img :src="`/avatars/${profileStore.selectedAvatar}`" alt="Avatar" class="user-avatar-icon" />
     </div>
   </header>
 </template>
 
 <style scoped>
 .app-header {
-  background-color: var(--primary-blue);
-  color: white;
-  padding: 0 2rem;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-.header-content {
-  max-width: 1200px;
-  margin: 0 auto;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  height: 64px;
+  padding: 0.75rem 1.5rem; /* Höhe angepasst */
+  background-color: var(--header-blue);
+  color: white;
+  flex-shrink: 0;
 }
-.logo-link {
+.logo-container {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  text-decoration: none;
-  color: white;
+  gap: 1rem;
 }
-.logo-text {
-  font-size: 1.5rem;
+.header-logo-svg {
+  width: 40px;
+  height: 40px;
+}
+h1 {
+  font-family: 'Merriweather', serif;
+  font-size: 1.75rem;
   font-weight: 700;
-  font-family: 'Poppins', sans-serif;
 }
-.main-nav {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-}
-.nav-link {
-  color: white;
-  text-decoration: none;
+.header-title {
+  font-family: serif;
+  font-style: italic;
+  font-size: 1.25rem; /* Schriftgröße angepasst */
   font-weight: 500;
-  font-size: 1rem;
-  padding: 0.5rem 0;
-  border-bottom: 2px solid transparent;
-  transition: all 0.2s;
+  text-align: center;
+  flex-grow: 1;
+  opacity: 0.95; /* Leichte Anpassung für Lesbarkeit */
+}
+.header-title h2 {
+  font-family: inherit; /* Stellt sicher, dass alle Stile übernommen werden */
+  font-style: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+}
+.user-menu {
   display: flex;
   align-items: center;
 }
-.nav-link:hover,
-.nav-link.router-link-exact-active {
-  border-bottom-color: white;
-}
-.profile-link:hover .user-avatar-icon {
-    transform: scale(1.1);
-}
-
+/* KORREKTUR: Avatar-Größe und -Stil exakt angepasst */
 .user-avatar-icon {
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background-color: #f8f9fa;
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  border: 2px solid white;
   object-fit: contain;
   padding: 2px;
-  transition: transform 0.2s ease-in-out;
+  transition: all 0.2s ease-in-out;
 }
-
-/* Logo Styles */
-.logo { position: relative; width: 40px; height: 40px; }
-.speech-bubble-body { width: 100%; height: 30px; background-color: white; border-radius: 10px; position: relative; z-index: 2; }
-.speech-bubble-tail { position: absolute; bottom: 0px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-top: 10px solid white; z-index: 1; }
-.flag-icon { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 28px; height: 18px; display: flex; border-radius: 1px; overflow: hidden; }
-.flag-blue { background-color: #0055A4; flex: 1; }
-.flag-white { background-color: #FFFFFF; flex: 1; }
-.flag-red { background-color: #EF4135; flex: 1; }
+.user-menu:hover .user-avatar-icon {
+  transform: scale(1.1);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
 </style>

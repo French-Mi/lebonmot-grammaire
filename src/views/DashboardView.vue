@@ -44,7 +44,36 @@ const downloadDailySummary = () => {
     const doc = new jsPDF();
     const today = new Date().toLocaleDateString('de-DE');
     doc.text(`Deine Lernübersicht vom ${today}`, 14, 15);
-    // ... (restlicher PDF-Code bleibt unverändert)
+    let finalY = 25;
+
+    dailySummaryStore.summaries.forEach((summary, index) => {
+        if (index > 0) {
+            finalY += 10;
+        }
+        doc.setFont('helvetica', 'bold');
+        doc.text(summary.title, 14, finalY);
+        finalY += 7;
+
+        autoTable(doc, {
+            startY: finalY,
+            head: [['Frage', 'Deine Antwort', 'Korrektur']],
+            body: summary.results.map(res => [res.question, res.userInput, res.isCorrect ? 'Richtig' : res.correctAnswer]),
+            theme: 'striped',
+            headStyles: { fillColor: [74, 144, 226] },
+            didParseCell: (data) => {
+                if (data.column.index === 2 && data.cell.raw) {
+                    if (data.cell.raw === 'Richtig') {
+                        data.cell.styles.textColor = [25, 135, 84]; // --success-color
+                    } else {
+                        data.cell.styles.textColor = [220, 53, 69]; // --error-color
+                    }
+                }
+            }
+        });
+        finalY = (doc as any).lastAutoTable.finalY;
+    });
+
+    doc.save(`lebonmot-tagesuebersicht-${new Date().toISOString().split('T')[0]}.pdf`);
 }
 </script>
 
@@ -108,17 +137,16 @@ const downloadDailySummary = () => {
 
             <div class="card info-card">
                 <h2>Tagesübersicht</h2>
-                <p>Lade eine PDF-Zusammenfassung aller heutigen Übungen herunter.</p>
-                <button @click="downloadDailySummary" :disabled="!dailySummaryStore.hasSummaries" class="btn btn-primary">
+                <button @click="downloadDailySummary" :disabled="!dailySummaryStore.hasSummaries" class="btn btn-warning">
                     Lernübersicht als PDF
                 </button>
+                <p class="utility-description">Lade eine PDF-Zusammenfassung aller heutigen Übungen herunter.</p>
             </div>
         </div>
     </div>
 </template>
 
 <style scoped>
-/* Allgemeine Styles bleiben gleich */
 .subtitle { margin-top: -1rem; margin-bottom: 2rem; color: var(--muted-text); }
 .card { padding: 1.5rem 2rem; }
 .dashboard-header { display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; align-items: flex-start; }
@@ -135,40 +163,18 @@ const downloadDailySummary = () => {
 .reward-card:not(.locked):hover { transform: translateY(-5px); border-color: var(--primary-blue); }
 .reward-card.selected { border-color: var(--success-color); box-shadow: 0 0 10px rgba(25, 135, 84, 0.3); }
 .reward-card.locked { opacity: 0.5; cursor: not-allowed; filter: grayscale(80%); }
-
-/* NEUE Tooltip-Styles */
-.tooltip-text {
-  visibility: hidden;
-  width: max-content;
-  max-width: 200px;
-  background-color: #343a40;
-  color: #fff;
-  text-align: center;
-  border-radius: 6px;
-  padding: 5px 10px;
-  position: absolute;
-  z-index: 10;
-  bottom: 110%; /* Positioniert den Tooltip über der Karte */
-  left: 50%;
-  transform: translateX(-50%);
-  opacity: 0;
-  transition: opacity 0.2s;
-  font-size: 0.85rem;
-}
-.reward-card:hover .tooltip-text {
-  visibility: visible;
-  opacity: 1;
-}
-
+.tooltip-text { visibility: hidden; width: max-content; max-width: 200px; background-color: #343a40; color: #fff; text-align: center; border-radius: 6px; padding: 5px 10px; position: absolute; z-index: 10; bottom: 110%; left: 50%; transform: translateX(-50%); opacity: 0; transition: opacity 0.2s; font-size: 0.85rem; }
+.reward-card:hover .tooltip-text { visibility: visible; opacity: 1; }
 .lock-icon { position: absolute; top: 5px; right: 5px; color: #343a40; font-size: 0.8rem; background-color: rgba(255, 255, 255, 0.7); padding: 0.3rem; border-radius: 50%; }
 .avatar-image-wrapper { width: 100%; height: 100%; margin: 0; background-color: #f1f3f5; border-radius: 50%; padding: 0.5rem; }
 .reward-avatar-image { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
 .bottom-row { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 2rem; }
-.info-card { display: flex; flex-direction: column; }
-.info-card p { flex-grow: 1; }
-.achievements-grid { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1rem; }
-.btn-primary:disabled { background-color: var(--border-color); cursor: not-allowed; }
-
+.info-card { display: flex; flex-direction: column; text-align: center;}
+.info-card h2 { margin-bottom: 1rem; }
+.utility-description { margin-top: 0.75rem; font-size: 0.9rem; color: var(--muted-text); flex-grow: 1; }
+.achievements-grid { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1rem; justify-content: center; }
+.btn { padding: 0.75rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 500; }
+.btn-warning:disabled { background-color: #f8f9fa; cursor: not-allowed; color: var(--muted-text); border-color: var(--border-color); }
 @media (max-width: 900px) {
     .dashboard-header, .bottom-row { grid-template-columns: 1fr; }
 }

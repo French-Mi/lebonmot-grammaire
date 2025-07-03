@@ -1,15 +1,122 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700&family=Merriweather:wght@400;700&display=swap');
+
 :root {
-    --primary-blue: #0d6efd; --header-blue: #4A90E2; --light-blue: #e7f1ff;
-    --dark-text: #212529; --muted-text: #6c757d; --background-color: #f8f9fa;
-    --card-background: #ffffff; --border-color: #dee2e6;
-    --success-color: #198754; --error-color: #dc3545;
+  --primary-blue: #3B82F6;
+  --header-blue: #4A90E2;
+  --light-blue: #DBEAFE;
+  --dark-text: #1F2937;
+  --muted-text: #6B7280;
+  --background-color: #f8f9fa;
+  --card-background: #ffffff;
+  --border-color: #e5e7eb;
+  --success-color: #10B981;
+  --error-color: #EF4444;
+  --xp-color: #FBBF24; /* Das satte Gelb für den aktivierten Button */
+  --warning-color: #ffc107;
+  --warning-text-color: #664d03; /* Textfarbe für den blassen Button */
+  --warning-bg-color: #fff3cd; /* Hintergrund für den blassen Button */
+  --warning-border-color: #ffc107; /* Rahmen für den blassen Button */
+  --streak-bg: #FFF7ED;
+  --streak-text: #9A3412;
+  --streak-icon: #F97316;
 }
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Poppins', sans-serif; background-color: var(--background-color); color: var(--dark-text); line-height: 1.6; }
-#app { max-width: 900px; margin: 0 auto; padding: 0 1rem; }
-.card { background-color: var(--card-background); border: 1px solid var(--border-color); border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-.view-container { padding: 2rem 0; }
-h1, h2, h3, h4, h5, h6 { font-family: 'Merriweather', serif; }
-a { text-decoration: none; color: var(--primary-blue); transition: color 0.2s; }
-a:hover { color: #0b5ed7; }
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+body {
+  font-family: 'Poppins', sans-serif;
+  background-color: var(--background-color);
+  color: var(--dark-text);
+  line-height: 1.6;
+}
+
+#app {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.main-content {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Merriweather', serif;
+}
+
+a {
+  text-decoration: none;
+  color: var(--primary-blue);
+  transition: color 0.2s;
+}
+
+a:hover {
+  color: #2563EB;
+}
+
+.card {
+  background-color: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+}
+
+.view-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+/* Allgemeine Button-Stile */
+.btn {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Stil für den gelben (aktivierten) Button */
+.btn-warning {
+  background-color: var(--xp-color);
+  color: var(--dark-text);
+  border-color: var(--xp-color);
+}
+.btn-warning:hover:not(:disabled) {
+  background-color: #fca103;
+  border-color: #fca103;
+}
+
+/* KORREKTUR: Stil für den blassgelben (deaktivierten) Button */
+.btn-warning:disabled {
+  background-color: var(--warning-bg-color);
+  color: var(--warning-text-color);
+  border-color: var(--warning-border-color);
+  cursor: not-allowed;
+  opacity: 1; /* Opazität entfernt, um die Farbe klar darzustellen */
+}

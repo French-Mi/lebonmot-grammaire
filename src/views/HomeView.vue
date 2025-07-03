@@ -153,7 +153,7 @@ const unlockedAchievements = computed(() => {
 }
 .xp-bar-fill {
   height: 100%;
-  background-color: var(--primary-blue);
+  background-color: var(--xp-color);
   border-radius: 5px;
   transition: width 0.5s ease-out;
 }
@@ -168,13 +168,13 @@ const unlockedAchievements = computed(() => {
   align-items: center;
   gap: 0.75rem;
   justify-content: center;
-  background-color: #fff7ed;
-  color: #9a3412;
+  background-color: var(--streak-bg);
+  color: var(--streak-text);
   padding: 0.5rem;
   border-radius: 8px;
 }
 .streak-icon {
-  color: #f97316;
+  color: var(--streak-icon);
   font-size: 1.5rem;
 }
 .streak-display p {
