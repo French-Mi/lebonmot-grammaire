@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive, onBeforeUpdate, watch, computed, nextTick } from 'vue';
-import { getConjugations, getConjugationsForQuiz, getPronounsForTense, getTablePronouns, getTenseDisplayName, formatPronounForDisplay } from '@/lib/verb-helper';
-import type { Verb } from '@/types/verb-types';
-import type { FeedbackResult } from '@/composables/useVerbExerciseEngine';
+import { getConjugationsForQuiz, getPronounsForTense, getTablePronouns, getTenseDisplayName, formatPronounForDisplay } from '@/lib/verb-helper';
+import type { Verb, FeedbackResult } from '@/types/verb-types';
 import SpeakerIcon from '@/components/ui/SpeakerIcon.vue';
 
 const props = defineProps<{
@@ -16,13 +15,19 @@ const emit = defineEmits<{
   (e: 'feedback', payload: { results: FeedbackResult[], isPerfect: boolean }): void
 }>();
 
-const correctAnswers = ref<string[]>([]);
 const pronouns = ref<string[]>([]);
+const correctAnswers = ref<string[]>([]);
 const userInputs = reactive<string[]>([]);
 const inputRefs = ref<HTMLInputElement[]>([]);
 
-const setInputRef = (el: any) => { if (el) { inputRefs.value.push(el); } };
-onBeforeUpdate(() => { inputRefs.value = []; });
+const setInputRef = (el: any, index: number) => {
+  if (el) {
+    inputRefs.value[index] = el;
+  }
+};
+onBeforeUpdate(() => {
+  inputRefs.value = [];
+});
 
 const showFeedbackView = computed(() => !!props.feedbackResults);
 
@@ -30,12 +35,12 @@ const getCleanPronoun = (pronoun: string) => {
     return pronoun.split(' ')[0].split('/')[0];
 }
 
-watch(() => [props.verb, props.tense, props.singlePronounIndex], () => {
-    // KORREKTUR: Stellt sicher, dass immer die korrekten, zueinander passenden Listen geladen werden.
+const setupExercise = () => {
+    userInputs.splice(0, userInputs.length);
+
     if (props.singlePronounIndex !== undefined) {
         const allPronouns = getPronounsForTense(props.verb, props.tense);
-        const allCorrectAnswers = getConjugations(props.verb, props.tense) || [];
-
+        const allCorrectAnswers = getConjugationsForQuiz(props.verb, props.tense) || [];
         pronouns.value = [allPronouns[props.singlePronounIndex]];
         correctAnswers.value = [allCorrectAnswers[props.singlePronounIndex]];
     } else {
@@ -43,15 +48,16 @@ watch(() => [props.verb, props.tense, props.singlePronounIndex], () => {
         correctAnswers.value = getConjugationsForQuiz(props.verb, props.tense);
     }
 
-    userInputs.splice(0, userInputs.length, ...Array(correctAnswers.value.length).fill(''));
+    userInputs.push(...Array(pronouns.value.length).fill(''));
 
     nextTick(() => {
         if(inputRefs.value[0]) {
             inputRefs.value[0]?.focus();
         }
     });
-}, { immediate: true });
+};
 
+watch(() => [props.verb, props.tense, props.singlePronounIndex], setupExercise, { immediate: true });
 
 const checkAnswers = () => {
     if (showFeedbackView.value) return;
@@ -59,9 +65,11 @@ const checkAnswers = () => {
     const results: FeedbackResult[] = [];
 
     for (let i = 0; i < correctAnswers.value.length; i++) {
-        const normalizedCorrectAnswer = correctAnswers.value[i].replace(/\(e\)?s?$/, '');
+        const correctAnswerString = correctAnswers.value[i] || '';
+        const normalizedCorrectAnswer = correctAnswerString.replace(/\(e\)?s?$/, '');
         const correctOptions = normalizedCorrectAnswer.split('/').map(a => a.trim().toLowerCase());
-        const userAnswer = userInputs[i].trim().toLowerCase();
+        const userAnswer = (userInputs[i] || '').trim().toLowerCase();
+
         const isCorrect = correctOptions.includes(userAnswer);
 
         if (!isCorrect) { allCorrect = false; }
@@ -69,12 +77,19 @@ const checkAnswers = () => {
         let originalIndex = i;
         if(props.singlePronounIndex !== undefined) {
           originalIndex = props.singlePronounIndex;
+        } else {
+          const fullPronounList = getPronounsForTense(props.verb, props.tense);
+          const currentPronoun = pronouns.value[i];
+          const foundIndex = fullPronounList.findIndex(p => p.startsWith(currentPronoun.split(' ')[0]));
+          if (foundIndex !== -1) {
+            originalIndex = foundIndex;
+          }
         }
 
         results.push({
             pronoun: pronouns.value[i],
-            userInput: userInputs[i],
-            correctAnswer: correctAnswers.value[i],
+            userInput: userInputs[i] || '',
+            correctAnswer: correctAnswerString,
             isCorrect: isCorrect,
             originalIndex: originalIndex
         });
@@ -83,8 +98,9 @@ const checkAnswers = () => {
 };
 
 const handleEnter = (currentIndex: number) => {
-    if (currentIndex < inputRefs.value.length - 1) {
-        inputRefs.value[currentIndex + 1].focus();
+    if (showFeedbackView.value) return;
+    if (currentIndex < userInputs.length - 1) {
+        inputRefs.value[currentIndex + 1]?.focus();
     } else {
         checkAnswers();
     }
@@ -111,9 +127,9 @@ const handleEnter = (currentIndex: number) => {
             <input
               type="text"
               v-model="userInputs[index]"
-              :ref="setInputRef"
+              :ref="el => setInputRef(el, index)"
               :disabled="showFeedbackView"
-              @keydown.enter.prevent="handleEnter(index)"
+              @keydown.enter.prevent.stop="handleEnter(index)"
               class="verb-input"
               autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
             >
@@ -161,8 +177,8 @@ const handleEnter = (currentIndex: number) => {
 .actions { display: flex; justify-content: center; margin-top: 2rem; }
 .btn { font-size: 1.2rem; padding: 0.8rem 2rem; }
 .feedback-row-content { display: grid; grid-template-columns: 1fr 30px 1fr; gap: 1rem; align-items: center; padding: 0.75rem; border-radius: 6px; border: 1px solid transparent; }
-.feedback-row-content.is-correct { background-color: var(--success-color-faded); }
-.feedback-row-content.is-incorrect { background-color: var(--error-color-faded); }
+.feedback-row-content.is-correct { background-color: #d1e7dd; }
+.feedback-row-content.is-incorrect { background-color: #f8d7da; }
 .feedback-row-content .user-input { color: var(--dark-text); }
 .feedback-row-content.is-incorrect .user-input { text-decoration: line-through; color: var(--muted-text); }
 .feedback-row-content .icon { font-weight: bold; font-size: 1.2rem; }

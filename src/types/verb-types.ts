@@ -45,8 +45,26 @@ export interface Verb {
   };
 }
 
-// NEU: Hinzugefügter Typ für die Drag-and-Drop-Komponente
+// KORRIGIERTER TYP
 export interface VerbForm {
+  id: string; // Eindeutige ID hinzugefügt
   pronoun: string;
   form: string;
+}
+
+export type Tense = string;
+
+export interface FeedbackResult {
+  pronoun: string;
+  userInput: string;
+  correctAnswer: string;
+  isCorrect: boolean;
+  originalIndex: number;
+}
+
+export interface TrainingChallenge {
+  verbKey: string;
+  tense: string;
+  pronounIndex?: number;
+  sentence?: ExampleSentence;
 }

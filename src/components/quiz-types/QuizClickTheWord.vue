@@ -77,7 +77,6 @@ defineExpose({
 <template>
   <div class="click-the-word-quiz">
     <h3 class="instruction-prompt">{{ currentQuestion.prompt }}</h3>
-    <p v-if="currentQuestion.answerContext" class="answer-context">{{ currentQuestion.answerContext }}</p>
 
     <div class="sentence-container" :class="{ 'disabled': answerChecked }">
         <span
@@ -89,6 +88,8 @@ defineExpose({
             {{ word }}
         </span>
     </div>
+
+    <p v-if="currentQuestion.answerContext" class="answer-context">{{ currentQuestion.answerContext }}</p>
 
     <div v-if="answerChecked" class="feedback-section" :class="isCorrect ? 'correct' : 'incorrect'">
       <div v-if="isCorrect">
@@ -117,13 +118,13 @@ defineExpose({
     font-size: 1.2rem;
     font-weight: 500;
     color: var(--dark-text);
-    margin-bottom: 0.5rem; /* Verringert */
+    margin-bottom: 1rem;
 }
-/* NEU: Stil für den Antwort-Kontext */
 .answer-context {
     text-align: center;
     font-size: 1.1rem;
     color: var(--muted-text);
+    margin-top: 1rem;
     margin-bottom: 2rem;
 }
 .sentence-container {

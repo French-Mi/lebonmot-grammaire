@@ -6,8 +6,8 @@ defineProps<{
   mistakeCount: number,
   showMistakeRepeat?: boolean,
   buttonTextRepeat?: string,
-  // Neue, generische Prop, um den Button bei Bedarf anzuzeigen
-  showDownload?: boolean
+  showDownload?: boolean,
+  showChangeMode?: boolean // NEUE PROP
 }>()
 
 const emit = defineEmits<{
@@ -15,7 +15,8 @@ const emit = defineEmits<{
   (e: 'repeat-mistakes'): void,
   (e: 'back-to-topic'): void,
   (e: 'back-to-home'): void,
-  (e: 'download-pdf'): void // Spezifisches Event für PDF-Download
+  (e: 'download-pdf'): void,
+  (e: 'change-mode'): void // NEUES EVENT
 }>()
 </script>
 
@@ -41,7 +42,12 @@ const emit = defineEmits<{
       <button @click="emit('repeat-all')" class="btn btn-secondary">
         {{ buttonTextRepeat || 'Level wiederholen' }}
       </button>
-       <button v-if="showDownload" @click="emit('download-pdf')" class="btn btn-info">
+
+      <button v-if="showChangeMode" @click="emit('change-mode')" class="btn btn-secondary">
+        Anderen Modus wählen
+      </button>
+
+      <button v-if="showDownload" @click="emit('download-pdf')" class="btn btn-info">
         Als PDF exportieren
       </button>
       <button @click="emit('back-to-topic')" class="btn btn-link">
@@ -86,12 +92,12 @@ const emit = defineEmits<{
   font-size: 1.1rem;
   border-radius: 8px;
   cursor: pointer;
+  border: none; /* Vereinfacht, da die meisten Buttons keinen Rand haben */
   transition: background-color 0.2s, transform 0.2s;
 }
 .btn-primary {
     background-color: var(--primary-blue);
     color: white;
-    border: none;
 }
 .btn-secondary {
     background-color: transparent;
@@ -99,9 +105,8 @@ const emit = defineEmits<{
     color: var(--primary-blue);
 }
 .btn-info {
-    background-color: #dc3545; /* PDF-Rot */
+    background-color: #dc3545;
     color: white;
-    border: none;
 }
 .btn-link {
   background: none;

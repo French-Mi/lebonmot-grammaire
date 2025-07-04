@@ -2,6 +2,7 @@
 import { useRoute, useRouter, RouterLink } from 'vue-router';
 import { computed, ref, onMounted, onUnmounted, nextTick } from 'vue';
 import { useGrammarProgressStore } from '../stores/grammarProgressStore';
+import type { MistakeRecord } from '../stores/grammarProgressStore';
 import { useProgressStore } from '@/stores/progressStore';
 import { useAppStore } from '@/stores/appStore';
 import { useDailySummaryStore } from '@/stores/dailySummaryStore';
@@ -9,7 +10,7 @@ import { useUserProfileStore } from '@/stores/userProfileStore';
 import { appRewards } from '@/data/rewards';
 
 import { pronounData } from '@/data/pronouns/index';
-import type { Exercise, Level, FillInTheBlankQuestion, SentenceOrderQuestion, IdentifyPartQuestion, ClickTheWordQuestion } from '@/data/pronouns/types';
+import type { Exercise, Level, FillInTheBlankQuestion, SentenceOrderQuestion, IdentifyPartQuestion, ClickTheWordQuestion, MatchPairsExercise } from '@/data/pronouns/types';
 import { achievements as allAchievements } from '@/data/achievements';
 
 import QuizFillInTheBlank from '@/components/quiz-types/QuizFillInTheBlank.vue';
@@ -35,14 +36,6 @@ type EnrichedFeedback = FeedbackPayload & {
     questionText: string;
 };
 
-type MistakeRecord = {
-  topicId: string;
-  levelId: string;
-  exercise: Exercise;
-  questionIndex: number;
-  userInput: string;
-}
-
 const route = useRoute();
 const router = useRouter();
 const grammarStore = useGrammarProgressStore();
@@ -66,55 +59,69 @@ const isMistakeRound = ref(false);
 const currentRoundMistakes = ref<MistakeRecord[]>([]);
 const allRoundAnswers = ref<EnrichedFeedback[]>([]);
 
-const setupExercises = (mode: 'mistakes' | number) => {
-  isMistakeRound.value = mode === 'mistakes';
-  levelFinished.value = false;
-  showFeedback.value = false;
-  feedbackDetails.value = null;
-  currentRoundMistakes.value = [];
-  allRoundAnswers.value = [];
-  let newQueue: Exercise[] = [];
-
-  const allLevels = pronounData.categories.flatMap(c => c.levels);
-  const level = allLevels.find(l => l.uniqueId === levelId.value);
-  if (!level) return;
-
-  if (mode === 'mistakes') {
-      const mistakes = grammarStore.getMistakesForLevel(topicId.value, levelId.value);
-      const groupedMistakes = mistakes.reduce<Record<string, Exercise>>((acc, mistake) => {
-        const key = `${mistake.exercise.type}-${mistake.exercise.instructions}`;
-        if (!acc[key]) {
-            acc[key] = { ...mistake.exercise, questions: 'questions' in mistake.exercise ? [] : undefined } as Exercise;
-        }
-
-        const accExercise = acc[key];
-        const originalExercise = mistake.exercise;
-
-        if ('questions' in accExercise && 'questions' in originalExercise && Array.isArray(originalExercise.questions)) {
-            const questionToAdd = originalExercise.questions[mistake.questionIndex];
-            if (questionToAdd) {
-                (accExercise.questions as any[]).push(questionToAdd);
-            }
-        }
-        return acc;
-      }, {});
-      newQueue = Object.values(groupedMistakes);
-      grammarStore.clearMistakesForLevel(topicId.value, levelId.value);
-  } else {
-    const specificExercise = level.exercises[mode];
-    if (specificExercise) {
-        newQueue = [specificExercise];
-    }
-  }
-
-  exerciseQueue.value = [...newQueue];
-  currentExerciseIndex.value = 0;
-};
-
 const currentLevelData = computed((): Level | undefined => {
   const allLevels = pronounData.categories.flatMap(c => c.levels);
   return allLevels.find(l => l.uniqueId === levelId.value);
 });
+
+const setupExercises = (mode: 'mistakes' | number) => {
+    isMistakeRound.value = mode === 'mistakes';
+    levelFinished.value = false;
+    showFeedback.value = false;
+    feedbackDetails.value = null;
+    currentRoundMistakes.value = [];
+    allRoundAnswers.value = [];
+    let newQueue: Exercise[] = [];
+
+    const level = currentLevelData.value;
+    if (!level) return;
+
+    if (mode === 'mistakes') {
+        const mistakes = grammarStore.getMistakesForLevel(topicId.value, levelId.value);
+        const exercisesToRepeatMap = new Map<number, Exercise>();
+
+        mistakes.forEach(mistake => {
+            const exerciseIndex = mistake.exerciseIndex;
+            const originalExercise = level.exercises[exerciseIndex];
+            if (!originalExercise) return;
+
+            if (originalExercise.type === 'matchPairs') {
+                if (!exercisesToRepeatMap.has(exerciseIndex)) {
+                    exercisesToRepeatMap.set(exerciseIndex, originalExercise);
+                }
+                return;
+            }
+
+            if ('questions' in originalExercise && Array.isArray(originalExercise.questions)) {
+                if (!exercisesToRepeatMap.has(exerciseIndex)) {
+                    exercisesToRepeatMap.set(exerciseIndex, { ...originalExercise, questions: [] });
+                }
+
+                const exerciseShell = exercisesToRepeatMap.get(exerciseIndex);
+                const questionToRepeat = originalExercise.questions[mistake.questionIndex];
+
+                if (exerciseShell && 'questions' in exerciseShell && Array.isArray(exerciseShell.questions) && questionToRepeat) {
+                    const isQuestionAlreadyAdded = exerciseShell.questions.some(q => JSON.stringify(q) === JSON.stringify(questionToRepeat));
+                    if (!isQuestionAlreadyAdded) {
+                       exerciseShell.questions.push(questionToRepeat as any);
+                    }
+                }
+            }
+        });
+
+        newQueue = Array.from(exercisesToRepeatMap.values());
+        grammarStore.clearMistakesForLevel(topicId.value, levelId.value);
+    } else {
+      const specificExercise = level.exercises[mode];
+      if (specificExercise) {
+          newQueue = [specificExercise];
+      }
+    }
+
+    exerciseQueue.value = [...newQueue];
+    currentExerciseIndex.value = 0;
+};
+
 
 const currentExercise = computed(() => exerciseQueue.value[currentExerciseIndex.value]);
 const isLastExercise = computed(() => currentExerciseIndex.value >= exerciseQueue.value.length - 1);
@@ -124,14 +131,17 @@ const handleFeedback = (payload: FeedbackPayload) => {
     const questionText = getQuestionTextForPdf(currentExercise.value, payload.questionIndex);
     allRoundAnswers.value.push({ ...payload, questionText });
 
-    if (!payload.isCorrect) {
-        currentRoundMistakes.value.push({
-            topicId: topicId.value,
-            levelId: levelId.value,
-            exercise: currentExercise.value,
-            questionIndex: payload.questionIndex,
-            userInput: payload.userInput,
-        });
+    if (!payload.isCorrect && !isMistakeRound.value) {
+        const exerciseIndex = parseInt(exerciseId.value, 10);
+        if (!isNaN(exerciseIndex)) {
+            currentRoundMistakes.value.push({
+                topicId: topicId.value,
+                levelId: levelId.value,
+                exerciseIndex: exerciseIndex,
+                questionIndex: payload.questionIndex,
+                userInput: payload.userInput,
+            });
+        }
     }
     feedbackDetails.value = payload;
     showFeedback.value = true;
@@ -155,7 +165,7 @@ const handleExerciseCompleted = () => {
         const isPerfect = mistakesCount === 0;
 
         if (isPerfect && !isMistakeRound.value) {
-          grammarStore.markLevelAsCompleted(topicId.value, levelId.value);
+          progressStore.addPerfectlyCompletedLevel(levelId.value);
         }
 
         progressStore.addXp(isPerfect ? 30 : 15, topicId.value);
@@ -180,7 +190,7 @@ const handleExerciseCompleted = () => {
 
         checkAndUnlockRewards();
 
-        currentRoundMistakes.value.forEach(mistake => grammarStore.addMistake(mistake as any));
+        currentRoundMistakes.value.forEach(mistake => grammarStore.addMistake(mistake));
         levelFinished.value = true;
 
         const level = currentLevelData.value;
@@ -247,7 +257,7 @@ const backToSelection = () => router.push(`/topic/${topicId.value}/level/${level
 
 const getQuestionTextForPdf = (exercise: Exercise, questionIndex: number): string => {
     if (exercise.type === 'matchPairs') {
-        const q = (exercise.sentenceStarts[questionIndex]);
+        const q = (exercise as MatchPairsExercise).sentenceStarts[questionIndex];
         return q ? q.text : '';
     }
     if (!('questions' in exercise) || !Array.isArray(exercise.questions)) return exercise.instructions;
@@ -257,7 +267,7 @@ const getQuestionTextForPdf = (exercise: Exercise, questionIndex: number): strin
     switch (exercise.type) {
         case 'fillInTheBlank': return `${(q as FillInTheBlankQuestion).text_start} ___ ${(q as FillInTheBlankQuestion).text_end}`;
         case 'sentenceOrder': return (q as SentenceOrderQuestion).parts.join(' | ');
-        case 'clickTheWord': return `${(q as ClickTheWordQuestion).sentence} (${(q as ClickTheWordQuestion).prompt})`;
+        case 'clickTheWord': return `${(q as ClickTheWordQuestion).prompt}\n"${(q as ClickTheWordQuestion).sentence}"`;
         case 'identifyPart': return `${(q as IdentifyPartQuestion).sentence} (${(q as IdentifyPartQuestion).prompt})`;
         default: return '';
     }
@@ -305,7 +315,6 @@ const downloadPdf = () => {
   doc.save(`lebonmot-ergebnisse-${level.uniqueId}.pdf`);
 };
 
-// KORREKTUR: Die globale Feedback-Leiste wird jetzt auch für 'matchPairs' ausgeblendet.
 const showGlobalFeedback = computed(() => {
     if (!showFeedback.value || !feedbackDetails.value) {
         return false;

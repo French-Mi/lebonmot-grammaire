@@ -1,4 +1,4 @@
-import { ref, computed, watch } from 'vue';
+import { ref, watch } from 'vue';
 import { defineStore } from 'pinia';
 import type { Exercise } from '@/data/pronouns/types';
 
@@ -6,7 +6,7 @@ import type { Exercise } from '@/data/pronouns/types';
 export interface MistakeRecord {
   topicId: string;
   levelId: string;
-  exercise: Exercise;
+  exerciseIndex: number; // Speichert den Index der Übung im Level
   questionIndex: number;
   userInput: string;
 }
@@ -51,7 +51,7 @@ export const useGrammarProgressStore = defineStore('grammarProgress', () => {
     const exists = mistakes.value.some(m =>
       m.topicId === mistake.topicId &&
       m.levelId === mistake.levelId &&
-      m.exercise.instructions === mistake.exercise.instructions &&
+      m.exerciseIndex === mistake.exerciseIndex &&
       m.questionIndex === mistake.questionIndex
     );
     if (!exists) {

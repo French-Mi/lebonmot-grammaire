@@ -6,54 +6,54 @@ const router = useRouter();
 const store = useVerbTrainerStore();
 
 const selectMode = (mode: TrainingMode) => {
-    store.setMode(mode);
-    // Leitet zur richtigen Seite, je nach Modus
-    if (mode === 'overview') {
-        router.push('/verb-trainer/table');
-    } else {
-        router.push('/verb-trainer/training');
-    }
-}
+  store.setMode(mode);
+
+  if (mode === 'overview') {
+    router.push({ name: 'verb-table-view' });
+  } else {
+    // Leitet zum eigentlichen Training
+    router.push({ name: 'verb-training' });
+  }
+};
 </script>
 
 <template>
-    <div class="view-container">
-        <RouterLink to="/verb-trainer/select-verbs" class="back-link">&larr; Zurück zur Verbauswahl</RouterLink>
-        <div class="mode-card card">
-            <h2>Schritt 3: Trainingsmodus auswählen</h2>
-            <p class="instructions">Wie möchtest du trainieren?</p>
-            <div class="mode-buttons">
-                <button @click="selectMode('overview')" class="btn btn-mode">
-                    <h3>Übersicht</h3>
-                    <p>Konjugationstabellen der ausgewählten Verben ansehen.</p>
-                </button>
+  <div class="view-container">
+    <RouterLink to="/verb-trainer/select-verbs" class="back-link">&larr; Zurück zur Verbauswahl</RouterLink>
+    <div class="mode-card card">
+      <h2>Schritt 3: Trainingsmodus auswählen</h2>
+      <p class="instructions">Wie möchtest du trainieren?</p>
+      <div class="mode-buttons">
+        <button @click="selectMode('overview')" class="btn btn-mode">
+          <h3>Übersicht</h3>
+          <p>Konjugationstabellen der ausgewählten Verben ansehen.</p>
+        </button>
 
-                <button @click="selectMode('standard')" class="btn btn-mode">
-                    <h3>Standard</h3>
-                    <p>Alle Formen eines Verbs auf einmal abfragen.</p>
-                </button>
+        <button @click="selectMode('standard')" class="btn btn-mode">
+          <h3>Standard</h3>
+          <p>Alle Formen eines Verbs auf einmal abfragen.</p>
+        </button>
 
-                <button @click="selectMode('shuffle')" class="btn btn-mode">
-                    <h3>Shuffle</h3>
-                    <p>Einzelne Verbformen zufällig durcheinander üben.</p>
-                </button>
+        <button @click="selectMode('shuffle')" class="btn btn-mode">
+          <h3>Shuffle</h3>
+          <p>Einzelne Verbformen zufällig durcheinander üben.</p>
+        </button>
 
-                <button @click="selectMode('drag-drop')" class="btn btn-mode">
-                    <h3>Drag & Drop</h3>
-                    <p>Konjugierte Formen den richtigen Personen zuordnen.</p>
-                </button>
+        <button @click="selectMode('drag-drop')" class="btn btn-mode">
+          <h3>Drag & Drop</h3>
+          <p>Konjugierte Formen den richtigen Personen zuordnen.</p>
+        </button>
 
-                <button @click="selectMode('translate')" class="btn btn-mode">
-                    <h3>Übersetzen</h3>
-                    <p>Einen Satz in der richtigen Zeitform übersetzen.</p>
-                </button>
-            </div>
-        </div>
+        <button @click="selectMode('translate')" class="btn btn-mode">
+          <h3>Übersetzen</h3>
+          <p>Einen Satz in der richtigen Zeitform übersetzen.</p>
+        </button>
+      </div>
     </div>
+  </div>
 </template>
 
 <style scoped>
-/* Keine Änderungen an den Styles */
 .back-link { display: inline-block; margin-bottom: 1rem; }
 .mode-card { padding: 2rem; text-align: center; }
 h2 { margin-bottom: 0.5rem; }

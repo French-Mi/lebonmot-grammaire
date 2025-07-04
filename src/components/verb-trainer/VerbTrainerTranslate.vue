@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import type { FeedbackResult, TrainingChallenge } from '@/composables/useVerbExerciseEngine';
-import type { Verb } from '@/types/verb-types';
+import type { FeedbackResult, TrainingChallenge, Verb } from '@/types/verb-types';
 import SpeakerIcon from '@/components/ui/SpeakerIcon.vue';
 
 const props = defineProps<{
@@ -56,7 +55,7 @@ const checkAnswer = () => {
           v-model="userInput"
           class="translation-input"
           placeholder="Deine Übersetzung..."
-          @keydown.enter.prevent="checkAnswer"
+          @keydown.enter.prevent.stop="checkAnswer"
       ></textarea>
 
       <div v-else-if="feedbackResults" class="feedback-display">
@@ -92,12 +91,10 @@ const checkAnswer = () => {
 .input-container { width: 100%; }
 .translation-input { width: 100%; min-height: 100px; padding: 1rem; font-size: 1.2rem; border-radius: 8px; border: 1px solid var(--border-color); resize: vertical; }
 .actions { display: flex; justify-content: center; margin-top: 1.5rem; }
-
-/* Neue Stile für das gewünschte Feedback-Design */
 .feedback-display { display: flex; flex-direction: column; gap: 1rem; }
 .user-answer-container { display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-radius: 8px; }
-.user-answer-container.is-correct { background-color: var(--success-color-faded); }
-.user-answer-container.is-incorrect { background-color: var(--error-color-faded); }
+.user-answer-container.is-correct { background-color: #d1e7dd; }
+.user-answer-container.is-incorrect { background-color: #f8d7da; }
 .user-answer { font-size: 1.2rem; font-style: italic; }
 .is-incorrect .user-answer { text-decoration: line-through; }
 .icons-wrapper { display: flex; align-items: center; gap: 0.5rem; }
