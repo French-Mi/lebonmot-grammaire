@@ -1,33 +1,48 @@
 <script setup lang="ts">
-import { useRoute, RouterLink } from 'vue-router';
+import { useRoute, useRouter, RouterLink } from 'vue-router';
 import { computed } from 'vue';
 import SpeakerIcon from '@/components/ui/SpeakerIcon.vue';
 import { theoryData } from '@/data/theory-content';
 import type { TheoryContent } from '@/data/theory-content';
 
 const route = useRoute();
+const router = useRouter();
 const topicId = computed(() => route.params.topicId as string);
 const levelId = computed(() => route.params.levelId as string);
 
 const content = computed<TheoryContent | null>(() => (theoryData as Record<string, TheoryContent>)[levelId.value] || null);
+
+const handleTableClick = (event: MouseEvent) => {
+    const target = event.target as HTMLElement;
+    const link = target.closest('a');
+
+    if (link && link.href) {
+        event.preventDefault();
+        const url = new URL(link.href);
+        const path = url.pathname + url.search + url.hash;
+        router.push(path);
+    }
+};
 </script>
 
 <template>
   <div class="view-container">
-    <RouterLink :to="`/topic/${topicId}`" class="back-link">&larr; Zurück zur Level-Übersicht</RouterLink>
+    <button @click="router.back()" class="btn btn-back">
+      &larr; Zurück
+    </button>
 
     <div v-if="content" class="theory-card card">
       <h1>{{ content.title }}</h1>
       <p class="intro-text" v-html="content.intro"></p>
 
-      <div v-if="content.comparisonTable && content.comparisonTable.rows.length > 0" class="table-container">
+      <div v-if="content.comparisonTable" class="table-container">
         <table class="data-table rules-example-table">
           <thead>
             <tr>
               <th v-for="header in content.comparisonTable.headers" :key="header" v-html="header"></th>
             </tr>
           </thead>
-          <tbody>
+          <tbody @click="handleTableClick">
             <tr v-for="row in content.comparisonTable.rows" :key="row.category">
               <td v-html="row.category"></td>
               <td v-for="value in row.values" :key="value" v-html="value"></td>
@@ -59,11 +74,11 @@ const content = computed<TheoryContent | null>(() => (theoryData as Record<strin
         </table>
       </div>
 
-      <div v-if="content.dualTable" class="dual-table-container">
+      <div v-if="content.dualTable" class="dual-table-container" @click="handleTableClick">
         <div class="table-half">
             <h4>{{ content.dualTable.left.title }}</h4>
             <p v-html="content.dualTable.left.rule"></p>
-            <ul>
+             <ul>
                 <li v-for="item in content.dualTable.left.forms" :key="item.pronoun" v-html="`${item.pronoun} &rarr; ${item.meaning}`"></li>
             </ul>
         </div>
@@ -111,8 +126,20 @@ const content = computed<TheoryContent | null>(() => (theoryData as Record<strin
 </template>
 
 <style scoped>
+.btn-back {
+    background-color: #f8f9fa;
+    color: var(--dark-text);
+    border: 1px solid var(--border-color);
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+    display: inline-block;
+    cursor: pointer;
+}
+.btn-back:hover {
+    background-color: #e9ecef;
+}
 .view-container { max-width: 900px; margin: 0 auto; }
-.back-link { display: inline-block; margin-bottom: 1.5rem; font-weight: 500; color: var(--muted-text); }
 .theory-card { padding: 2rem 2.5rem 1.5rem; }
 h1 { font-size: 2.5rem; color: var(--header-blue); margin-bottom: 1rem; }
 .intro-text { font-size: 1.1rem; line-height: 1.7; margin-bottom: 2.5rem; color: var(--dark-text); }

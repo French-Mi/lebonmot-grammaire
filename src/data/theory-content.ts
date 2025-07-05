@@ -171,7 +171,7 @@ export const theoryData: Record<string, TheoryContent> = {
         { pronoun: "te / t'*", replaces: 'dir', example: { sentence: 'Je <strong>te</strong> parle.', speak: 'Je te parle.', translation: '(Ich spreche mit dir.)' } },
         { pronoun: "lui", replaces: 'ihm / ihr', example: { sentence: 'Tu parles à Marie? &rarr; Tu <strong>lui</strong> parles.', speak: 'Tu lui parles.', translation: '(Sprichst du mit Marie? &rarr; Du sprichst mit ihr.)' } },
         { pronoun: 'nous', replaces: 'uns', example: { sentence: 'Elle <strong>nous</strong> montre les photos.', speak: 'Elle nous montre les photos.', translation: '(Sie zeigt uns die Fotos.)' } },
-        { pronoun: 'vous', replaces: 'euch / Ihnen', example: { sentence: 'Je <strong>vous</strong> écris une lettre.', speak: 'Je vous écris eine lettre.', translation: '(Ich schreibe euch/Ihnen einen Brief.)' } },
+        { pronoun: 'vous', replaces: 'euch / Ihnen', example: { sentence: 'Je <strong>vous</strong> écris eine lettre.', speak: 'Je vous écris eine lettre.', translation: '(Ich schreibe euch/Ihnen einen Brief.)' } },
         { pronoun: 'leur', replaces: 'ihnen (Plural)', example: { sentence: 'Je parle à mes parents. &rarr; Je <strong>leur</strong> parle.', speak: 'Je leur parle.', translation: '(Ich spreche mit meinen Eltern. &rarr; Ich spreche mit ihnen.)' } }
       ]
     },
@@ -240,7 +240,6 @@ export const theoryData: Record<string, TheoryContent> = {
     positioningRules: newPositioningRules,
     orderChart: pronounOrderChartData
   },
-  // KORRIGIERTER BLOCK für 'obj-6' mit tabellarischer Darstellung
   'obj-6': {
     title: "Das Pronomen «y»",
     intro: "Das Pronomen «y» bedeutet meist <i>dort, da</i> oder <i>daran</i>.<br><br>Es ersetzt Ergänzungen, die mit der Präposition <strong>à</strong> oder einer anderen Ortspräposition (außer 'de') eingeleitet werden:",
@@ -272,9 +271,25 @@ export const theoryData: Record<string, TheoryContent> = {
   },
    'obj-7': {
     title: "Die Pronomen 'y' und 'en'",
-    intro: "Wenn 'y' und 'en' zusammen in einem Satz vorkommen, gilt immer die Reihenfolge: y vor en.",
-     positioningRules: newPositioningRules,
-     orderChart: pronounOrderChartData
+    intro: "Wenn 'y' und 'en' zusammen in einem Satz vorkommen, gilt immer die Reihenfolge: <strong>y vor en</strong>. In dieser Lektion wiederholen wir die Regeln für beide und ihre korrekte Satzstellung.",
+    dualTable: {
+        left: {
+            title: 'Das Objektpronomen «en»',
+            rule: `Das Objektpronomen <strong>«en»</strong> bedeutet <i>davon, von dort, darüber</i>.<br><br>
+                   Als Pronomen vertritt <strong>«en»</strong> Ergänzungen mit der Präposition <strong>de</strong>.<br><br>
+                   <a href="/topic/pronouns/theory/obj-5">→ Link zur Theorie</a>`,
+            forms: []
+        },
+        right: {
+            title: 'Das Pronomen «y»',
+            rule: `Das Pronomen <strong>«y»</strong> bedeutet meist <i>dort, da</i> oder <i>daran</i>.<br><br>
+                   Als Pronomen ersetzt <strong>«y»</strong> Ergänzungen, die mit der Präposition <strong>à</strong> oder einer anderen <strong>Ortspräposition</strong> (außer 'de') eingeleitet werden.<br><br>
+                   <a href="/topic/pronouns/theory/obj-6">→ Link zur Theorie</a>`,
+            forms: []
+        }
+    },
+    positioningRules: newPositioningRules,
+    orderChart: pronounOrderChartData
   },
    'obj-8': {
     title: 'Alle Objektpronomen: Übersicht',

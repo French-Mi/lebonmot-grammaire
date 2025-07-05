@@ -1,15 +1,17 @@
 // src/data/pronouns/types.ts
 
-// --- Strukturen für die Übungstypen ---
+// --- Basis-Struktur für alle Übungen ---
 export interface BaseExercise {
   type: string;
-  instructions: string;
   shortTitle: string;
+  instructions: string;
 }
+
+// --- Strukturen für die einzelnen Übungstypen ---
 
 export interface FillInTheBlankQuestion {
   text_start: string;
-  text_blank: string;
+  text_blank: string | string[]; // Kann jetzt ein oder mehrere Lücken enthalten
   text_end: string;
   explanation?: string;
   translation_de?: string;
@@ -56,7 +58,7 @@ export interface IdentifyPartExercise extends BaseExercise {
 export interface ClickTheWordQuestion {
   sentence: string;
   prompt: string;
-  answerContext?: string; // NEU
+  answerContext?: string;
   answer: string[];
   explanation?: string;
   translation_de?: string;
@@ -66,14 +68,15 @@ export interface ClickTheWordExercise extends BaseExercise {
   questions: ClickTheWordQuestion[];
 }
 
+// --- Zusammenfassende Typen ---
+
 export type Exercise =
   | FillInTheBlankExercise
   | SentenceOrderExercise
   | MatchPairsExercise
   | ClickTheWordExercise
-  | IdentifyPartExercise; // Alle Übungstypen sind hier vereint
+  | IdentifyPartExercise;
 
-// --- Haupt-Datenstruktur ---
 export interface Level {
   level: number;
   uniqueId: string;
@@ -82,13 +85,15 @@ export interface Level {
   hasTheory: boolean;
   exercises: Exercise[];
 }
+
 export interface PronounCategory {
   id: string;
   title: string;
   levels: Level[];
 }
+
 export interface PronounTopicData {
-  id: string;
+  id: 'pronouns';
   title: string;
   categories: PronounCategory[];
 }

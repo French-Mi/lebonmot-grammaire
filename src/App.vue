@@ -37,16 +37,20 @@ onUnmounted(() => {
     </div>
   </div>
 
-  <template v-else>
+  <div v-else class="app-layout">
     <AppHeader />
     <main class="main-content">
       <RouterView />
     </main>
+    <footer class="app-footer">
+      <p>&copy; Miriam Betz, Alle Rechte vorbehalten.</p>
+    </footer>
     <NotificationToast />
-  </template>
+  </div>
 </template>
 
 <style scoped>
+/* Stile für den Ladebildschirm (unverändert) */
 .loading-screen {
   position: fixed;
   top: 0;
@@ -81,5 +85,26 @@ onUnmounted(() => {
   text-align: right;
   margin-top: -0.5rem;
   color: rgba(255, 255, 255, 0.9);
+}
+
+/* NEUE STILE FÜR DAS LAYOUT UND DEN FOOTER */
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--background-color);
+}
+.main-content {
+  flex-grow: 1; /* Wichtig, damit der Footer nach unten gedrückt wird */
+}
+.app-footer {
+  width: 100%;
+  padding: 1rem;
+  text-align: center;
+  background-color: var(--card-background);
+  border-top: 1px solid var(--border-color);
+  color: var(--muted-text);
+  font-size: 0.85rem;
+  flex-shrink: 0; /* Verhindert, dass der Footer schrumpft */
 }
 </style>

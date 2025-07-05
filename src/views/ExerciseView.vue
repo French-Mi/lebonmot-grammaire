@@ -8,21 +8,19 @@ import { useAppStore } from '@/stores/appStore';
 import { useDailySummaryStore } from '@/stores/dailySummaryStore';
 import { useUserProfileStore } from '@/stores/userProfileStore';
 import { appRewards } from '@/data/rewards';
-
 import { pronounData } from '@/data/pronouns/index';
 import type { Exercise, Level, FillInTheBlankQuestion, SentenceOrderQuestion, IdentifyPartQuestion, ClickTheWordQuestion, MatchPairsExercise } from '@/data/pronouns/types';
 import { achievements as allAchievements } from '@/data/achievements';
-
 import QuizFillInTheBlank from '@/components/quiz-types/QuizFillInTheBlank.vue';
 import QuizSentenceOrder from '@/components/quiz-types/QuizSentenceOrder.vue';
 import QuizMatchPairs from '@/components/quiz-types/QuizMatchPairs.vue';
 import QuizIdentifyPart from '@/components/quiz-types/QuizIdentifyPart.vue';
 import QuizClickTheWord from '@/components/quiz-types/QuizClickTheWord.vue';
 import LevelSummary from '@/components/ui/LevelSummary.vue';
-
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
+// --- TYPE DEFINITIONS ---
 type FeedbackPayload = {
     isCorrect: boolean;
     userInput: string;
@@ -31,11 +29,13 @@ type FeedbackPayload = {
     questionIndex: number;
     translation_de?: string;
 };
+type EnrichedFeedback = FeedbackPayload & { questionText: string; };
+interface QuizComponent {
+  nextQuestion: () => void;
+  checkAnswer: () => void;
+}
 
-type EnrichedFeedback = FeedbackPayload & {
-    questionText: string;
-};
-
+// --- STORE & ROUTER INITIALIZATION ---
 const route = useRoute();
 const router = useRouter();
 const grammarStore = useGrammarProgressStore();
@@ -44,26 +44,39 @@ const appStore = useAppStore();
 const dailySummaryStore = useDailySummaryStore();
 const userProfileStore = useUserProfileStore();
 
+// --- ROUTE PARAMS ---
 const topicId = computed(() => route.params.topicId as string);
 const levelId = computed(() => route.params.levelId as string);
 const exerciseId = computed(() => route.params.exerciseId as string);
 
+// --- COMPONENT STATE ---
 const exerciseQueue = ref<Exercise[]>([]);
 const currentExerciseIndex = ref(0);
 const levelFinished = ref(false);
 const showFeedback = ref(false);
 const feedbackDetails = ref<FeedbackPayload | null>(null);
-const quizComponentRef = ref<{ nextQuestion: () => void } | null>(null);
-const continueButtonRef = ref<HTMLButtonElement | null>(null);
+const quizComponentRef = ref<QuizComponent | null>(null);
+const mainActionButtonRef = ref<HTMLButtonElement | null>(null);
 const isMistakeRound = ref(false);
 const currentRoundMistakes = ref<MistakeRecord[]>([]);
 const allRoundAnswers = ref<EnrichedFeedback[]>([]);
 
+// --- COMPUTED PROPERTIES ---
 const currentLevelData = computed((): Level | undefined => {
+  if (!pronounData || !pronounData.categories) return undefined;
   const allLevels = pronounData.categories.flatMap(c => c.levels);
   return allLevels.find(l => l.uniqueId === levelId.value);
 });
+const currentExercise = computed(() => exerciseQueue.value[currentExerciseIndex.value]);
+const isLastExercise = computed(() => currentExerciseIndex.value >= exerciseQueue.value.length - 1);
+const summaryTitle = computed(() => isMistakeRound.value ? "Fehlerrunde beendet" : "Übung abgeschlossen!");
+const showGlobalFeedback = computed(() => {
+    if (!showFeedback.value || !feedbackDetails.value) return false;
+    const typesWithLocalFeedback = ['clickTheWord', 'matchPairs'];
+    return !typesWithLocalFeedback.includes(currentExercise.value?.type);
+});
 
+// --- METHODS ---
 const setupExercises = (mode: 'mistakes' | number) => {
     isMistakeRound.value = mode === 'mistakes';
     levelFinished.value = false;
@@ -79,13 +92,12 @@ const setupExercises = (mode: 'mistakes' | number) => {
     if (mode === 'mistakes') {
         const mistakes = grammarStore.getMistakesForLevel(topicId.value, levelId.value);
         const exercisesToRepeatMap = new Map<number, Exercise>();
-
         mistakes.forEach(mistake => {
             const exerciseIndex = mistake.exerciseIndex;
             const originalExercise = level.exercises[exerciseIndex];
             if (!originalExercise) return;
 
-            if (originalExercise.type === 'matchPairs') {
+            if (originalExercise.type === 'matchPairs' || originalExercise.type === 'identifyPart') {
                 if (!exercisesToRepeatMap.has(exerciseIndex)) {
                     exercisesToRepeatMap.set(exerciseIndex, originalExercise);
                 }
@@ -98,36 +110,30 @@ const setupExercises = (mode: 'mistakes' | number) => {
                 }
 
                 const exerciseShell = exercisesToRepeatMap.get(exerciseIndex);
-                const questionToRepeat = originalExercise.questions[mistake.questionIndex];
+                const questionToRepeat = (originalExercise.questions as any[])[mistake.questionIndex];
 
                 if (exerciseShell && 'questions' in exerciseShell && Array.isArray(exerciseShell.questions) && questionToRepeat) {
                     const isQuestionAlreadyAdded = exerciseShell.questions.some(q => JSON.stringify(q) === JSON.stringify(questionToRepeat));
                     if (!isQuestionAlreadyAdded) {
-                       exerciseShell.questions.push(questionToRepeat as any);
+                       (exerciseShell.questions as any[]).push(questionToRepeat);
                     }
                 }
             }
         });
-
         newQueue = Array.from(exercisesToRepeatMap.values());
         grammarStore.clearMistakesForLevel(topicId.value, levelId.value);
     } else {
-      const specificExercise = level.exercises[mode];
-      if (specificExercise) {
-          newQueue = [specificExercise];
+      if (level.exercises && level.exercises[mode]) {
+        const specificExercise = level.exercises[mode];
+        if (specificExercise) newQueue = [specificExercise];
       }
     }
-
     exerciseQueue.value = [...newQueue];
     currentExerciseIndex.value = 0;
 };
 
-
-const currentExercise = computed(() => exerciseQueue.value[currentExerciseIndex.value]);
-const isLastExercise = computed(() => currentExerciseIndex.value >= exerciseQueue.value.length - 1);
-const summaryTitle = computed(() => isMistakeRound.value ? "Fehlerrunde beendet" : "Übung abgeschlossen!");
-
 const handleFeedback = (payload: FeedbackPayload) => {
+    if (!currentExercise.value) return;
     const questionText = getQuestionTextForPdf(currentExercise.value, payload.questionIndex);
     allRoundAnswers.value.push({ ...payload, questionText });
 
@@ -145,13 +151,18 @@ const handleFeedback = (payload: FeedbackPayload) => {
     }
     feedbackDetails.value = payload;
     showFeedback.value = true;
-    nextTick(() => { continueButtonRef.value?.focus(); });
+    nextTick(() => { mainActionButtonRef.value?.focus(); });
+};
+
+const triggerCheckAnswer = () => {
+  if (quizComponentRef.value && typeof quizComponentRef.value.checkAnswer === 'function') {
+    quizComponentRef.value.checkAnswer();
+  }
 };
 
 const advanceToNext = () => {
     showFeedback.value = false;
     feedbackDetails.value = null;
-
     if (quizComponentRef.value) {
       quizComponentRef.value.nextQuestion();
     }
@@ -167,29 +178,20 @@ const handleExerciseCompleted = () => {
         if (isPerfect && !isMistakeRound.value) {
           progressStore.addPerfectlyCompletedLevel(levelId.value);
         }
-
         progressStore.addXp(isPerfect ? 30 : 15, topicId.value);
         progressStore.logSession();
 
         const oldAchievements = [...progressStore.unlockedAchievements];
         progressStore.checkAndUnlockAchievements({ topicId: topicId.value, mistakes: mistakesCount, isPerfect });
         const newAchievements = progressStore.unlockedAchievements.filter(id => !oldAchievements.includes(id));
-
         if(newAchievements.length > 0) {
-            const achievementTitles = newAchievements
-                .map(id => allAchievements.find(ach => ach.id === id)?.title)
-                .filter(Boolean);
+            const achievementTitles = newAchievements.map(id => allAchievements.find(a => a.id === id)?.title).filter(Boolean);
             if (achievementTitles.length > 0) {
-                appStore.showNotification({
-                    title: "Neuer Erfolg!",
-                    description: `Du hast "${achievementTitles.join(', ')}" freigeschaltet!`,
-                    icon: 'fas fa-trophy'
-                });
+                appStore.showNotification({ title: "Neuer Erfolg!", description: `Du hast "${achievementTitles.join(', ')}" freigeschaltet!`, icon: 'fas fa-trophy' });
             }
         }
 
         checkAndUnlockRewards();
-
         currentRoundMistakes.value.forEach(mistake => grammarStore.addMistake(mistake));
         levelFinished.value = true;
 
@@ -198,49 +200,48 @@ const handleExerciseCompleted = () => {
         if (level && exercise) {
             const category = pronounData.categories.find(c => c.levels.some(l => l.uniqueId === levelId.value));
             const title = `Pronomen > ${category?.title.replace(/A\)|B\)/, '').trim()} > Level ${level.level}: ${level.title}`;
-
-            dailySummaryStore.addExerciseSummary({
-                topic: 'Pronomen',
-                title: title,
-                timestamp: Date.now(),
-                results: allRoundAnswers.value.map(answer => ({
-                    question: answer.questionText,
-                    userInput: answer.userInput,
-                    correctAnswer: answer.correctAnswer || '',
-                    isCorrect: answer.isCorrect,
-                }))
-            });
+            dailySummaryStore.addExerciseSummary({ topic: 'Pronomen', title: title, timestamp: Date.now(), results: allRoundAnswers.value.map(answer => ({ question: answer.questionText, userInput: answer.userInput, correctAnswer: answer.correctAnswer || '', isCorrect: answer.isCorrect })) });
         }
     }
 };
 
 const checkAndUnlockRewards = () => {
   const currentXPLevel = progressStore.level;
-
   appRewards.forEach(reward => {
     const isUnlocked = userProfileStore.unlockedAvatars.includes(reward.value);
-
     if (!isUnlocked && currentXPLevel >= reward.requiredLevels) {
       userProfileStore.unlockReward(reward);
-      appStore.showNotification({
-        title: 'Belohnung freigeschaltet!',
-        description: `Neuer Avatar: ${reward.name}`,
-        icon: 'fas fa-star'
-      });
+      appStore.showNotification({ title: 'Belohnung freigeschaltet!', description: `Neuer Avatar: ${reward.name}`, icon: 'fas fa-star' });
     }
   });
 };
 
 const handleGlobalKeydown = (event: KeyboardEvent) => {
-  if (event.key === 'Enter' && showFeedback.value) {
-    event.preventDefault();
-    advanceToNext();
+  if (event.key === 'Enter') {
+      const activeElement = document.activeElement as HTMLElement;
+      if (activeElement && activeElement.tagName === 'TEXTAREA') return;
+
+      event.preventDefault();
+      if (showFeedback.value) {
+          advanceToNext();
+      } else {
+          triggerCheckAnswer();
+      }
   }
 };
 
 onMounted(() => {
-    const mode = exerciseId.value === 'mistakes' ? 'mistakes' : parseInt(exerciseId.value, 10);
-    setupExercises(mode);
+    const id = exerciseId.value;
+    if (id === 'mistakes') {
+        setupExercises('mistakes');
+    } else {
+        const numericId = parseInt(id, 10);
+        if (isNaN(numericId)) {
+            router.push(`/topic/${topicId.value}`);
+            return;
+        }
+        setupExercises(numericId);
+    }
     window.addEventListener('keydown', handleGlobalKeydown);
 });
 
@@ -249,27 +250,49 @@ onUnmounted(() => {
 });
 
 const repeatThis = () => {
-    const mode = exerciseId.value === 'mistakes' ? 'mistakes' : parseInt(exerciseId.value, 10);
-    setupExercises(mode);
+    const id = exerciseId.value;
+    if (id === 'mistakes') {
+        setupExercises('mistakes');
+    } else {
+        const numericId = parseInt(id, 10);
+        if (!isNaN(numericId)) {
+          setupExercises(numericId);
+        }
+    }
 };
-
 const backToSelection = () => router.push(`/topic/${topicId.value}/level/${levelId.value}`);
 
+// KORRIGIERTE FUNKTION
 const getQuestionTextForPdf = (exercise: Exercise, questionIndex: number): string => {
     if (exercise.type === 'matchPairs') {
         const q = (exercise as MatchPairsExercise).sentenceStarts[questionIndex];
         return q ? q.text : '';
     }
-    if (!('questions' in exercise) || !Array.isArray(exercise.questions)) return exercise.instructions;
+    if (!('questions' in exercise) || !Array.isArray(exercise.questions)) {
+        return exercise.instructions;
+    }
+
     const q = exercise.questions[questionIndex];
     if (!q) return '';
 
+    // Typsichere Abfrage je nach Übungstyp
     switch (exercise.type) {
-        case 'fillInTheBlank': return `${(q as FillInTheBlankQuestion).text_start} ___ ${(q as FillInTheBlankQuestion).text_end}`;
-        case 'sentenceOrder': return (q as SentenceOrderQuestion).parts.join(' | ');
-        case 'clickTheWord': return `${(q as ClickTheWordQuestion).prompt}\n"${(q as ClickTheWordQuestion).sentence}"`;
-        case 'identifyPart': return `${(q as IdentifyPartQuestion).sentence} (${(q as IdentifyPartQuestion).prompt})`;
-        default: return '';
+        case 'fillInTheBlank': {
+            const question = q as FillInTheBlankQuestion;
+            const blankText = Array.isArray(question.text_blank) ? question.text_blank.join(' ___ ') : '___';
+            return `${question.text_start} ${blankText} ${question.text_end}`;
+        }
+        case 'sentenceOrder': {
+            return (q as SentenceOrderQuestion).parts.join(' | ');
+        }
+        case 'clickTheWord': {
+            return `${(q as ClickTheWordQuestion).prompt}\n"${(q as ClickTheWordQuestion).sentence}"`;
+        }
+        case 'identifyPart': {
+            return `${(q as IdentifyPartQuestion).sentence} (${(q as IdentifyPartQuestion).prompt})`;
+        }
+        default:
+            return '';
     }
 };
 
@@ -296,10 +319,7 @@ const downloadPdf = () => {
       head: head,
       body: body,
       startY: 30,
-      headStyles: {
-          fillColor: [74, 144, 226],
-          textColor: [255, 255, 255]
-      },
+      headStyles: { fillColor: [74, 144, 226], textColor: [255, 255, 255] },
       didParseCell: function (data) {
         if (data.column.index === 2) {
           if (data.cell.raw === 'Richtig') {
@@ -314,14 +334,6 @@ const downloadPdf = () => {
 
   doc.save(`lebonmot-ergebnisse-${level.uniqueId}.pdf`);
 };
-
-const showGlobalFeedback = computed(() => {
-    if (!showFeedback.value || !feedbackDetails.value) {
-        return false;
-    }
-    const typesWithLocalFeedback = ['clickTheWord', 'matchPairs'];
-    return !typesWithLocalFeedback.includes(currentExercise.value?.type);
-});
 
 </script>
 
@@ -370,8 +382,11 @@ const showGlobalFeedback = computed(() => {
                 </div>
             </div>
 
-            <div v-if="showFeedback" class="next-action-bar">
-                <button ref="continueButtonRef" @click="advanceToNext" class="btn btn-secondary">
+            <div class="next-action-bar">
+                <button v-if="!showFeedback" @click="triggerCheckAnswer" class="btn btn-primary" ref="mainActionButtonRef">
+                  Prüfen
+                </button>
+                <button v-if="showFeedback" @click="advanceToNext" class="btn btn-primary" ref="mainActionButtonRef">
                   Weiter
                 </button>
             </div>
@@ -400,5 +415,17 @@ const showGlobalFeedback = computed(() => {
 .incorrect .translation { padding-top: 0.5rem; border-top: 1px solid rgba(255, 255, 255, 0.3); }
 .incorrect .translation strong { font-weight: 700; }
 .next-action-bar { position: fixed; bottom: 0; left: 0; right: 0; padding: 1rem; background-color: var(--card-background); border-top: 1px solid var(--border-color); display: flex; justify-content: center; z-index: 99; }
-.btn-secondary { padding: 0.8rem 3rem; font-size: 1.2rem; }
+
+.next-action-bar .btn {
+  padding: 0.8rem 3rem;
+  font-size: 1.2rem;
+}
+.btn-primary {
+    background-color: var(--primary-blue);
+    color: white;
+    border: none;
+}
+.btn-primary:hover {
+    background-color: #2563EB;
+}
 </style>
